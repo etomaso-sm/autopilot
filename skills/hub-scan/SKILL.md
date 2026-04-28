@@ -1,24 +1,24 @@
 ---
-name: entropy-scan
+name: hub-scan
 description: >
   Use when you want a macro health check of the entire codebase: quality
   grades per domain, duplicated patterns, boundary validation, and tech debt.
-  Triggers on: entropy-scan, code health, quality scan, tech debt,
+  Triggers on: hub-scan, code health, quality scan, tech debt,
   codebase audit, quality grades, repo health.
 user_invocable: true
 ---
 
-<!-- SYNC: entropy-scan is the source of truth for dimension definitions (13 agents).
+<!-- SYNC: hub-scan is the source of truth for dimension definitions (13 agents).
      When changing agents, update ALL dependents:
-     - entropy-aware: dimension tables (specs + plans), count in heading/description
-     - entropy-fix: priority order, fix type classification, dimension names
-     - entropy-bugfix: conditional partial scan rules for elevated/sensitive fixes
-     - entropy-loop: strategy levels, agent count in scan logic
-     - entropy-driven: references entropy-scan for validation, entropy-loop as fallback -->
+     - hub-aware: dimension tables (specs + plans), count in heading/description
+     - hub-fix: priority order, fix type classification, dimension names
+     - hub-bugfix: conditional partial scan rules for elevated/sensitive fixes
+     - hub-loop: strategy levels, agent count in scan logic
+     - hub-driven: references hub-scan for validation, hub-loop as fallback -->
 
-# Entropy Scan
+# Hub Scan
 
-**Announce at start:** "Running /entropy-scan — scanning codebase health and quality."
+**Announce at start:** "Running /hub-scan — scanning codebase health and quality."
 
 ## Overview
 
@@ -30,7 +30,7 @@ Complementary to `simplify` (micro: changed files) — this is macro (whole repo
 
 ### Partial Scan
 
-Supports scanning specific domains: `/entropy-scan billing users`
+Supports scanning specific domains: `/hub-scan billing users`
 
 When domains are specified:
 - Skip Phase 1 domain detection — use the provided domain names
@@ -46,7 +46,7 @@ When domains are specified:
 echo "Scanning repository"
 ```
 
-Parse arguments: if domain names were provided (e.g., `/entropy-scan billing users`),
+Parse arguments: if domain names were provided (e.g., `/hub-scan billing users`),
 store them as the target domain list. Otherwise, scan all domains.
 
 Read `docs/QUALITY_SCORE.md` if it exists to compare with previous scan.
@@ -174,7 +174,7 @@ Example finding:
 | Accuracy | SPEC.md | 34 | References `app/billing/processor.py` which was renamed to `service.py` | Update path |
 | Accuracy | docs/api.md | 12 | Documents `/api/v1/users` but route is now `/api/v2/users` | Update endpoint |
 | Complexity | app/billing/views.py | — | 450 lines | Split into viewsets |
-| Stale count | docs/entropy-spec.md | 25 | Says "10 dimensions" but entropy-scan has 12 | Update count |
+| Stale count | docs/hub-spec.md | 25 | Says "10 dimensions" but hub-scan has 12 | Update count |
 
 ### Agent 5: Principles Compliance (SOLID & Clean Architecture)
 
@@ -553,8 +553,8 @@ that accumulate over time from development workflows.
   - Duplicated files across locations (same content, different paths)
 
 - **State/temp files committed to repo**: Files that should be ephemeral:
-  - `entropy-loop-state.json` after the loop is complete (graduated/needs_human)
-  - Test baseline files (`/tmp/entropy-baseline-*.txt`)
+  - `hub-loop-state.json` after the loop is complete (graduated/needs_human)
+  - Test baseline files (`/tmp/hub-baseline-*.txt`)
   - Build artifacts or cache files not in `.gitignore`
   ```bash
   # Find potential temp/state files
@@ -593,8 +593,8 @@ Example finding:
 |------|------|-------------|--------|
 | Orphaned plan | docs/plans/2026-03-03-deploy-verification.md | Feature implemented on 2026-03-15 | Archive or delete |
 | Deprecated location | docs/plans/ (10 files) | Superseded by docs/superpowers/plans/ | Move or delete |
-| Dead doc | docs/superpowers/specs/2026-04-01-entropy-aware-driven-design.md | Not referenced by any skill or README | Link from relevant docs or delete |
-| Completed state | docs/entropy-loop-state.json | All domains graduated | Delete |
+| Dead doc | docs/superpowers/specs/2026-04-01-hub-aware-driven-design.md | Not referenced by any skill or README | Link from relevant docs or delete |
+| Completed state | docs/hub-loop-state.json | All domains graduated | Delete |
 | Accumulation | docs/superpowers/plans/ | 4 plans in 2 weeks, none cleaned up | Establish cleanup process |
 
 ### Agent 13: CI/CD & Deployment
@@ -608,7 +608,7 @@ Impactia targets are **Hetzner** (backend services via GitHub Actions + SSH/
 Docker Compose) and **Vercel** (frontends/landings). This dimension is opinionated
 toward those targets — other stacks (Modal, Fly, Render) are acceptable but must
 still satisfy the same stage checklist. Related skills: `hetzner-cloud`,
-`deploy-landing`, `wand-environments`, `entropy-check-deploy`, `entropy-e2e-frontend`, `run-e2e`.
+`deploy-landing`, `wand-environments`, `hub-check-deploy`, `hub-e2e-frontend`, `run-e2e`.
 
 #### The Impactia standard pipeline (required stages)
 
@@ -679,7 +679,7 @@ grep -rE '(api[_-]?key|token|password|secret)\s*[:=]\s*["'\''][A-Za-z0-9]{16,}' 
   the deployed URL (not localhost). Examples that count:
   - Playwright/Cypress project configured with `baseURL` = deployed URL.
   - `curl <url>/health` + assertion on response.
-  - `entropy-e2e-frontend` or `run-e2e` skill invocation against the deployed env.
+  - `hub-e2e-frontend` or `run-e2e` skill invocation against the deployed env.
   Smoke that runs on localhost BEFORE deploy does NOT count for this stage.
 - **Stage 5 (Rollback)**: README/ARCHITECTURE.md section titled "Rollback" or
   "Recovery", OR a `rollback` workflow in `.github/workflows/`. One sentence
@@ -978,11 +978,11 @@ Include ALL detailed findings — every SOLID violation, every DRY issue, every 
 opportunity. Don't summarize or skip findings.
 
 After presenting, ask:
-> "Want me to fix these issues? Run `/entropy-fix` to create a correction plan and apply fixes."
+> "Want me to fix these issues? Run `/hub-fix` to create a correction plan and apply fixes."
 
 ### Lite Mode
 
-When invoked with `--lite` (e.g., `/entropy-scan --lite` or by entropy-loop for
+When invoked with `--lite` (e.g., `/hub-scan --lite` or by hub-loop for
 spot-checks), run a faster scan:
 
 - Skip detailed findings tables — only compute grades per dimension
@@ -1005,6 +1005,6 @@ Full mode is always used for initial scans and final reports.
 - **Principles are authoritative**: Agent 5 and Agent 7 MUST read `~/.ai-skills/method/PRINCIPLES.md`. Findings must reference specific principle numbers.
 - **Security is not optional**: Agent 7 findings rated D or F should be flagged as critical in the Top 5 Refactoring Priorities, regardless of other grades.
 - **Git history adds context, not grades inflation**: Agent 8 grades reflect risk signals. High churn alone is not bad — high churn + low test coverage IS bad. Cross-reference with other agents.
-- **Corrections are a separate skill**: `/entropy-scan` diagnoses. `/entropy-fix` corrects. Do not execute fixes from within entropy-scan.
+- **Corrections are a separate skill**: `/hub-scan` diagnoses. `/hub-fix` corrects. Do not execute fixes from within hub-scan.
 - **Doc accuracy is not optional**: Agent 4 must cross-reference documentation claims against actual code/files. "Docs exist" is not the same as "docs are accurate".
 - **Hygiene is cumulative**: Agent 12 findings compound over time. Old plans that were acceptable last month become debt this month. Grade based on current state, not intent.

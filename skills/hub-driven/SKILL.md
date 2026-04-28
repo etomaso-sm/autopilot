@@ -1,41 +1,41 @@
 ---
-name: entropy-driven
+name: hub-driven
 description: >
   End-to-end orchestrator for large tasks with quality assurance. Chains
-  brainstorming, entropy-aware enrichment, planning, execution, and
-  entropy-scan validation with automatic entropy-fix if needed.
-  Triggers on: entropy-driven, entropy driven, build with quality,
-  tarea con entropy, quality-assured task, full quality pipeline.
+  brainstorming, hub-aware enrichment, planning, execution, and
+  hub-scan validation with automatic hub-fix if needed.
+  Triggers on: hub-driven, hub driven, build with quality,
+  tarea con hub, quality-assured task, full quality pipeline.
 user_invocable: true
 ---
 
-# Entropy-Driven
+# Hub-Driven
 
-<!-- SYNC: entropy-driven depends on:
-     - entropy-aware: stateless enrichment (invoked on spec + plan)
-     - entropy-scan: 12-dimension validation (invoked post-execution)
-     - entropy-fix: correction with --skip-rescan (invoked if domains < B)
-     - entropy-loop: referenced as alternative in Final Report
+<!-- SYNC: hub-driven depends on:
+     - hub-aware: stateless enrichment (invoked on spec + plan)
+     - hub-scan: 12-dimension validation (invoked post-execution)
+     - hub-fix: correction with --skip-rescan (invoked if domains < B)
+     - hub-loop: referenced as alternative in Final Report
      - ship-with-review: PR creation + fresh-agent code review (Step 8)
-     - entropy-e2e-frontend: invoked at Step 5.5 when frontend files touched (handoff with target_env=local)
-     - entropy-driven-autopilot: autonomous sibling (separate entry point, same sub-skills)
+     - hub-e2e-frontend: invoked at Step 5.5 when frontend files touched (handoff with target_env=local)
+     - hub-driven-autopilot: autonomous sibling (separate entry point, same sub-skills)
      Update if dimension count, flag contracts, or pipeline order change. -->
 
-**Announce at start:** "Running /entropy-driven — full quality-assured pipeline for this task."
+**Announce at start:** "Running /hub-driven — full quality-assured pipeline for this task."
 
-> **For fully autonomous execution (no human in the loop), use `/entropy-driven-autopilot` instead.** That skill resolves every human gate with deterministic rules + logged AI judgment and is the canonical dispatch target for `entropy-linear-autopilot` feature tickets.
+> **For fully autonomous execution (no human in the loop), use `/hub-driven-autopilot` instead.** That skill resolves every human gate with deterministic rules + logged AI judgment and is the canonical dispatch target for `hub-linear-autopilot` feature tickets.
 
 ## Overview
 
 End-to-end orchestrator that takes a large task and delivers it with quality
-assured by `/entropy-scan`. Chains existing skills in a fixed pipeline:
+assured by `/hub-scan`. Chains existing skills in a fixed pipeline:
 
 ```
-brainstorming → entropy-aware → writing-plans → entropy-aware → execution → entropy-e2e-frontend (if frontend) → entropy-scan → entropy-fix → ship-with-review
+brainstorming → hub-aware → writing-plans → hub-aware → execution → hub-e2e-frontend (if frontend) → hub-scan → hub-fix → ship-with-review
 ```
 
-Each skill runs its full process. `entropy-aware` enriches artefacts between
-phases. `entropy-scan` validates the final result. `entropy-fix` corrects
+Each skill runs its full process. `hub-aware` enriches artefacts between
+phases. `hub-scan` validates the final result. `hub-fix` corrects
 findings if needed (max 1 cycle).
 
 ## Pipeline
@@ -50,15 +50,15 @@ phase — the spec quality directly affects everything downstream.
 
 **Output:** spec file at `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 
-### Step 2: Entropy-Aware on Spec
+### Step 2: Hub-Aware on Spec
 
-Invoke `entropy-aware` on the spec file produced in Step 1.
+Invoke `hub-aware` on the spec file produced in Step 1.
 
 ```
-/entropy-aware docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+/hub-aware docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 ```
 
-This enriches the spec with any missing entropy-scan dimensions. No user
+This enriches the spec with any missing hub-scan dimensions. No user
 interaction — inline correction.
 
 **Output:** same spec file, corrected inline
@@ -72,12 +72,12 @@ task decomposition with TDD steps, self-review.
 
 **Output:** plan file at `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`
 
-### Step 4: Entropy-Aware on Plan
+### Step 4: Hub-Aware on Plan
 
-Invoke `entropy-aware` on the plan file produced in Step 3.
+Invoke `hub-aware` on the plan file produced in Step 3.
 
 ```
-/entropy-aware docs/superpowers/plans/YYYY-MM-DD-<topic>.md
+/hub-aware docs/superpowers/plans/YYYY-MM-DD-<topic>.md
 ```
 
 This enriches the plan with any missing steps for test coverage, boundary
@@ -104,10 +104,10 @@ If Inline: invoke `superpowers:executing-plans`
 ### Step 5.5: Visual Regression (frontend only)
 
 After Step 5 commits, check whether frontend files changed using the
-[Frontend-Change Detection block in `entropy-e2e-frontend`](../entropy-e2e-frontend/SKILL.md#frontend-change-detection-shared).
+[Frontend-Change Detection block in `hub-e2e-frontend`](../hub-e2e-frontend/SKILL.md#frontend-change-detection-shared).
 
-- If no frontend changes → log `entropy-e2e-frontend: no frontend changes, skipping` and continue to Step 6.
-- If frontend changes detected → invoke `/entropy-e2e-frontend` with handoff:
+- If no frontend changes → log `hub-e2e-frontend: no frontend changes, skipping` and continue to Step 6.
+- If frontend changes detected → invoke `/hub-e2e-frontend` with handoff:
 
 ```json
 {
@@ -127,13 +127,13 @@ update snapshots or fix the UI.
 
 ---
 
-### Step 6: Entropy Scan
+### Step 6: Hub Scan
 
-After execution completes, run a partial entropy-scan targeting only the domains
+After execution completes, run a partial hub-scan targeting only the domains
 affected by the task:
 
 ```
-/entropy-scan <affected-domain-1> <affected-domain-2>
+/hub-scan <affected-domain-1> <affected-domain-2>
 ```
 
 Determine affected domains from:
@@ -143,15 +143,15 @@ Determine affected domains from:
 
 **Output:** `docs/QUALITY_SCORE.md` with grades for affected domains
 
-### Step 7: Entropy Fix (Conditional)
+### Step 7: Hub Fix (Conditional)
 
-Check the entropy-scan results:
+Check the hub-scan results:
 
 - **All affected domains >= B:** `QUALITY_GATE=pass`. Proceed to Step 8.
-- **Any affected domain < B:** Invoke `/entropy-fix` to correct findings.
+- **Any affected domain < B:** Invoke `/hub-fix` to correct findings.
   This is limited to **1 cycle only**.
 
-After entropy-fix completes, check grades again:
+After hub-fix completes, check grades again:
 
 - **All >= B:** `QUALITY_GATE=pass`. Proceed to Step 8.
 - **Still < B:** `QUALITY_GATE=fail`. Proceed to Step 8 anyway — the user decides.
@@ -170,7 +170,7 @@ Behavior depends on `QUALITY_GATE`:
 - **`pass`**: `ship-with-review` runs in **auto mode** — it creates the PR
   with the fixed body format and dispatches the fresh code-review agent
   without asking. No prompts. The PR URL and review verdict come back to
-  entropy-driven.
+  hub-driven.
 - **`fail`**: `ship-with-review` runs in **ask mode** — it presents the
   failing grades and asks the user whether to (a) open PR + review anyway,
   (b) skip PR and iterate, or (c) open PR without review. User decides.
@@ -182,16 +182,16 @@ Behavior depends on `QUALITY_GATE`:
 Present the final summary:
 
 ```
-entropy-driven: task complete
+hub-driven: task complete
   Spec: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
   Plan: docs/superpowers/plans/YYYY-MM-DD-<topic>.md
 
-  Entropy-scan results:
+  Hub-scan results:
   | Domain   | Grade | Status |
   |----------|-------|--------|
   | <domain> | <grade> | <pass/needs-work> |
 
-  entropy-aware enrichments:
+  hub-aware enrichments:
     Spec: <N> dimensions added/enriched
     Plan: <M> dimensions added/enriched
 
@@ -202,15 +202,15 @@ entropy-driven: task complete
 
 If any domain is still < B:
 > "Some domains didn't reach grade B after one correction cycle. You can:
-> 1. Run `/entropy-fix` again for another cycle
-> 2. Run `/entropy-scan <domain>` to inspect specific findings
-> 3. Run `/entropy-loop` to autonomously iterate until all domains reach grade A
+> 1. Run `/hub-fix` again for another cycle
+> 2. Run `/hub-scan <domain>` to inspect specific findings
+> 3. Run `/hub-loop` to autonomously iterate until all domains reach grade A
 > 4. Accept the current state and iterate later"
 
 ## Important Rules
 
-- **Full skill processes**: Each invoked skill runs its complete process. Do not shortcut brainstorming questions, skip writing-plans self-review, or bypass entropy-fix test gates.
-- **Max 1 entropy-fix cycle**: After entropy-scan, run entropy-fix at most once. If grades still < B, report and stop. The user decides next steps.
+- **Full skill processes**: Each invoked skill runs its complete process. Do not shortcut brainstorming questions, skip writing-plans self-review, or bypass hub-fix test gates.
+- **Max 1 hub-fix cycle**: After hub-scan, run hub-fix at most once. If grades still < B, report and stop. The user decides next steps.
 - **Partial scan only**: Step 6 scans only affected domains, not the entire codebase. This keeps the feedback loop fast.
 - **Preserve user interaction**: Steps 1 (brainstorming) and 5 (execution choice) involve user interaction. Do not auto-pilot these — the user's input shapes the outcome.
 - **Artefact chain**: Each step builds on the previous. spec → enriched spec → plan → enriched plan → code → validation. If any step fails, stop and report.

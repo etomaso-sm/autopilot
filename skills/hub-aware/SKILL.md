@@ -1,27 +1,27 @@
 ---
-name: entropy-aware
+name: hub-aware
 description: >
-  Post-process a spec or plan to align it with entropy-scan's 13 quality
+  Post-process a spec or plan to align it with hub-scan's 13 quality
   dimensions. Reads the artefact, evaluates gaps, and corrects inline.
-  Triggers on: entropy-aware, entropy aware, quality check spec,
+  Triggers on: hub-aware, hub aware, quality check spec,
   quality check plan, enrich spec, enrich plan.
 user_invocable: true
 ---
 
-# Entropy Aware
+# Hub Aware
 
-<!-- SYNC: entropy-aware and entropy-scan share dimension definitions.
+<!-- SYNC: hub-aware and hub-scan share dimension definitions.
      Update both when changing criteria. -->
 
-**Announce at start:** "Running /entropy-aware — enriching artefact with entropy-scan quality dimensions."
+**Announce at start:** "Running /hub-aware — enriching artefact with hub-scan quality dimensions."
 
 ## Overview
 
 Stateless post-processor. Takes a spec or plan file, evaluates it against the
-13 dimensions that `/entropy-scan` grades, and corrects it inline — adding what's
+13 dimensions that `/hub-scan` grades, and corrects it inline — adding what's
 missing without removing what's already there.
 
-Composable: any skill can invoke `entropy-aware` after producing an artefact.
+Composable: any skill can invoke `hub-aware` after producing an artefact.
 Does NOT run scans or tests — works purely on document content.
 
 ## Phase 1: Read and Classify
@@ -70,7 +70,7 @@ For each dimension, check whether the artefact already covers it. Track:
 | 9 | Testability | Dependency injection in the architecture. No side-effect constructors. Business logic separated from I/O. Clean seams for testing at every layer. |
 | 10 | Observability | Logging strategy defined: structured logging at key decision points, error context, request tracing (correlation IDs). Health check endpoints. Metrics on critical business operations. Log levels used appropriately. |
 | 11 | Frontend Quality | *(Only if artefact involves frontend code.)* Design system/tokens referenced for colors, spacing, typography. Component architecture: presentational vs container separation, composition over inheritance, max ~200 lines per component. Accessibility: semantic HTML, ARIA attributes, keyboard navigation, focus management. Performance: lazy loading strategy, bundle optimization, list virtualization for large datasets. State management: local vs global state boundaries defined. Responsive breakpoints from defined scale. i18n: all user-facing strings through translation system. |
-| 12 | Repo Hygiene | Doc accuracy plan: how will documentation stay in sync with code? (e.g., README updated as part of feature tasks, SPEC.md reviewed quarterly). Cleanup strategy: plan/spec files archived or deleted after implementation. No deprecated file locations used. State files (entropy-loop-state.json) cleaned after completion. |
+| 12 | Repo Hygiene | Doc accuracy plan: how will documentation stay in sync with code? (e.g., README updated as part of feature tasks, SPEC.md reviewed quarterly). Cleanup strategy: plan/spec files archived or deleted after implementation. No deprecated file locations used. State files (hub-loop-state.json) cleaned after completion. |
 | 13 | CI/CD & Deployment | Spec covers the Impactia 5-stage pipeline: (1) PR gate with lint+typecheck+unit tests as required check, (2) build producing SHA-pinned artifact (Docker image for Hetzner, build output for Vercel), (3) explicit branch→env mapping (`main`→prod, `develop`/`dev`→staging), (4) **post-deploy E2E smoke against the deployed URL** (not localhost) — minimum health check + one critical flow, (5) documented rollback path. Secrets referenced via `secrets.*` and listed in README/`docs/ENV.md` with owner. Target declared (Hetzner or Vercel or justified alternative). |
 
 ### For Plans
@@ -97,7 +97,7 @@ For each dimension rated **Partial** or **Missing**:
 
 **For specs:**
 - Add a new subsection under the most relevant existing section, or create a new
-  `## Entropy Dimensions` section at the end if no natural home exists
+  `## Hub Dimensions` section at the end if no natural home exists
 - Write concrete requirements, not vague statements
 - Reference specific principles by number (P1-P10) where applicable
 
@@ -115,7 +115,7 @@ augment. The original author's intent is preserved.
 After correcting, output a brief summary to the terminal:
 
 ```
-entropy-aware: corrected <path>
+hub-aware: corrected <path>
   + Added: <what was added> (dim N)
   + Added: <what was added> (dim N)
   ~ Enriched: <what was augmented> (dim N)
@@ -128,5 +128,5 @@ entropy-aware: corrected <path>
 - **Never delete content**: Only add or augment. The artefact's original structure and intent must be preserved.
 - **Concrete over vague**: "Add input validation using Zod schema for CreateUserRequest" not "add validation". "Write pytest for BillingService.charge() with mocked payment client" not "write tests".
 - **Reference PRINCIPLES.md**: When adding dimension 5 or 7 content, cite specific principle numbers (P1-P10).
-- **No scans or tests**: This skill works on document content only. It does not run entropy-scan, tests, or any code.
-- **Idempotent**: Running entropy-aware twice on the same artefact should not duplicate content. Check before adding.
+- **No scans or tests**: This skill works on document content only. It does not run hub-scan, tests, or any code.
+- **Idempotent**: Running hub-aware twice on the same artefact should not duplicate content. Check before adding.

@@ -1,6 +1,6 @@
-# Entropy Workflow
+# Hub Workflow
 
-This document describes the entropy delivery system from idea intake to
+This document describes the hub delivery system from idea intake to
 verified delivery. The central rule is simple:
 
 > The ticket defines what success means. Brainstorming/spec defines how to solve
@@ -11,36 +11,36 @@ verified delivery. The central rule is simple:
 
 ```mermaid
 flowchart TD
-    A[Rough idea or request] --> B["/entropy-ticket"]
+    A[Rough idea or request] --> B["/hub-ticket"]
     B --> C["Code discovery"]
     C --> D["Ticket contract"]
     D --> D1["docs/tickets/YYYY-MM-DD-slug.md"]
     D --> D2["docs/TICKETS.md local tracker"]
     D --> D3["Linear issue"]
 
-    D1 --> E["/entropy-driven-autopilot --from-ticket"]
+    D1 --> E["/hub-driven-autopilot --from-ticket"]
     D2 --> E
-    D3 --> F["/entropy-linear-autopilot"]
+    D3 --> F["/hub-linear-autopilot"]
     F --> G{"Classify ticket"}
     G -->|Feature| E
-    G -->|Bug| H["/entropy-bugfix"]
+    G -->|Bug| H["/hub-bugfix"]
 
     E --> I["Bootstrap autopilot branch"]
     I --> J["docs/autopilot-state.json"]
     J --> K["Brainstorming"]
     K --> L["Spec in docs/superpowers/specs/"]
-    L --> M["/entropy-aware on spec"]
+    L --> M["/hub-aware on spec"]
     M --> N["Writing plan"]
     N --> O["Plan in docs/superpowers/plans/"]
-    O --> P["/entropy-aware on plan"]
+    O --> P["/hub-aware on plan"]
     P --> Q["Subagent-driven implementation"]
     Q --> R{"Frontend changed?"}
-    R -->|Yes| S["/entropy-e2e-frontend pre-merge"]
-    R -->|No| T["/entropy-scan"]
+    R -->|Yes| S["/hub-e2e-frontend pre-merge"]
+    R -->|No| T["/hub-scan"]
     S --> T
     T --> U["docs/QUALITY_SCORE.md + docs/quality-score.json"]
     U --> V{"Any affected domain below B?"}
-    V -->|Yes| W["/entropy-fix max 1 cycle"]
+    V -->|Yes| W["/hub-fix max 1 cycle"]
     V -->|No| X["Open PR"]
     W --> X
 
@@ -57,9 +57,9 @@ flowchart TD
     AE -->|Pass| AF["gh pr merge --rebase"]
     AF --> AG{Deploy verification required?}
     AG -->|No| AH["merged_unverified or pr_open"]
-    AG -->|Yes| AI["/entropy-ship deploy_only"]
-    AI --> AJ["/entropy-check-deploy"]
-    AI --> AK["/entropy-e2e-frontend post-deploy"]
+    AG -->|Yes| AI["/hub-ship deploy_only"]
+    AI --> AJ["/hub-check-deploy"]
+    AI --> AK["/hub-e2e-frontend post-deploy"]
     AJ --> AL{"Verified delivery?"}
     AK --> AL
     AL -->|Yes| AM["delivery_status=verified"]
@@ -75,7 +75,7 @@ flowchart TD
 
 ### Ticket contract
 
-`/entropy-ticket` turns an idea into a code-aware delivery contract. It always
+`/hub-ticket` turns an idea into a code-aware delivery contract. It always
 inspects the repository before shaping tickets because even a clear request can
 be cut incorrectly without code evidence.
 
@@ -86,10 +86,10 @@ The ticket contract contains:
 - `scope_boundaries`: what must not be changed.
 - `code_discovery`: searched paths, likely touched areas, observations, and
   open questions.
-- `Entropy autopilot input`: valid JSON consumed by
-  `/entropy-driven-autopilot --from-ticket`.
+- `Hub autopilot input`: valid JSON consumed by
+  `/hub-driven-autopilot --from-ticket`.
 
-The local ticket file is canonical for the entropy contract. Linear and
+The local ticket file is canonical for the hub contract. Linear and
 `docs/TICKETS.md` are tracking surfaces for that contract.
 
 ### Spec and plan
@@ -106,7 +106,7 @@ The ticket is not the spec. The division of responsibility is:
 
 ### Done means delivered
 
-For feature tickets, `entropy-linear-autopilot` moves a ticket to Done only
+For feature tickets, `hub-linear-autopilot` moves a ticket to Done only
 when all of these are true:
 
 - `status == "shipped"`
@@ -122,17 +122,17 @@ ticket contract is not satisfied.
 
 | Skill | Role |
 |---|---|
-| `/entropy-ticket` | Code-aware intake. Creates local/Linear/draft tickets and the autopilot input contract. |
-| `/entropy-driven` | Interactive feature pipeline. Keeps human gates for brainstorming and execution choices. |
-| `/entropy-driven-autopilot` | Autonomous feature pipeline. Resolves gates with logged decisions, opens PR, reviews, optionally merges and verifies deploy. |
-| `/entropy-linear-autopilot` | Linear dispatcher. Pulls configured Linear tickets and routes features to autopilot, bugs to bugfix. |
-| `/entropy-bugfix` | Autonomous bugfix pipeline for regressions and failures. |
-| `/entropy-aware` | Post-processes specs and plans against entropy quality dimensions. |
-| `/entropy-scan` | Produces quality grades and findings for affected domains. |
-| `/entropy-fix` | Applies correction plans from entropy-scan findings. |
-| `/entropy-e2e-frontend` | Runs pre-merge or post-deploy frontend E2E/visual checks. |
-| `/entropy-check-deploy` | Verifies CI/CD and deployed health evidence. |
-| `/entropy-ship` | Delivery gate for manual shipping or autopilot deploy-only verification. |
+| `/hub-ticket` | Code-aware intake. Creates local/Linear/draft tickets and the autopilot input contract. |
+| `/hub-driven` | Interactive feature pipeline. Keeps human gates for brainstorming and execution choices. |
+| `/hub-driven-autopilot` | Autonomous feature pipeline. Resolves gates with logged decisions, opens PR, reviews, optionally merges and verifies deploy. |
+| `/hub-linear-autopilot` | Linear dispatcher. Pulls configured Linear tickets and routes features to autopilot, bugs to bugfix. |
+| `/hub-bugfix` | Autonomous bugfix pipeline for regressions and failures. |
+| `/hub-aware` | Post-processes specs and plans against hub quality dimensions. |
+| `/hub-scan` | Produces quality grades and findings for affected domains. |
+| `/hub-fix` | Applies correction plans from hub-scan findings. |
+| `/hub-e2e-frontend` | Runs pre-merge or post-deploy frontend E2E/visual checks. |
+| `/hub-check-deploy` | Verifies CI/CD and deployed health evidence. |
+| `/hub-ship` | Delivery gate for manual shipping or autopilot deploy-only verification. |
 
 ## Process in Detail
 
@@ -141,7 +141,7 @@ ticket contract is not satisfied.
 Input can be a rough request, a structured description, a local ticket, or a
 Linear issue.
 
-`/entropy-ticket` produces one or more tickets. It may decide that the right cut
+`/hub-ticket` produces one or more tickets. It may decide that the right cut
 is a spike first, multiple independent tickets, or a single implementation
 ticket.
 
@@ -156,27 +156,27 @@ External artifacts:
 
 Commit behavior:
 
-- `/entropy-ticket` stages generated files but does not commit.
+- `/hub-ticket` stages generated files but does not commit.
 
 ### 2. Tracking and dispatch
 
 There are two tracking modes:
 
 - Local tracking through `docs/TICKETS.md`
-- Linear tracking through `entropy-linear-autopilot`
+- Linear tracking through `hub-linear-autopilot`
 
 `docs/TICKETS.md` contains a machine-readable JSON block between
-`ENTROPY-TICKETS:START` and `ENTROPY-TICKETS:END`; the markdown table is
+`HUB-TICKETS:START` and `HUB-TICKETS:END`; the markdown table is
 regenerated from that JSON.
 
-`/entropy-linear-autopilot` reads `entropy-linear-autopilot.json`, fetches
+`/hub-linear-autopilot` reads `hub-linear-autopilot.json`, fetches
 tickets from the configured Linear status, classifies each ticket as feature or
 bug, moves selected tickets to `In Progress`, applies labels when configured,
 and dispatches one agent per ticket.
 
 Repo artifacts:
 
-- `entropy-linear-autopilot.json`
+- `hub-linear-autopilot.json`
 - child-run artifacts from dispatched skills
 
 External artifacts:
@@ -187,7 +187,7 @@ External artifacts:
 
 ### 3. Autopilot bootstrap
 
-`/entropy-driven-autopilot` creates an evidence branch:
+`/hub-driven-autopilot` creates an evidence branch:
 
 ```text
 autopilot/YYYY-MM-DD-<slug>
@@ -218,7 +218,7 @@ Commit behavior:
 Autopilot invokes the same conceptual pipeline as the interactive flow:
 
 ```text
-brainstorming -> entropy-aware -> writing-plans -> entropy-aware
+brainstorming -> hub-aware -> writing-plans -> hub-aware
 ```
 
 The autopilot preamble resolves human gates deterministically and logs each
@@ -250,7 +250,7 @@ execution model: spec compliance and code quality.
 
 ### 6. Frontend E2E gate
 
-If frontend files changed, `/entropy-e2e-frontend` runs in pre-merge local mode
+If frontend files changed, `/hub-e2e-frontend` runs in pre-merge local mode
 before the quality scan.
 
 Repo artifacts:
@@ -258,7 +258,7 @@ Repo artifacts:
 - possibly `playwright.config.ts` if Playwright is missing and the skill creates
   a project default
 - possibly new Playwright tests for affected routes/components
-- `docs/entropy-e2e-frontend-runs/YYYY-MM-DDTHH-MM-SSZ-<mode>-<target_env>.json`
+- `docs/hub-e2e-frontend-runs/YYYY-MM-DDTHH-MM-SSZ-<mode>-<target_env>.json`
 
 Generated runtime artifacts:
 
@@ -269,12 +269,12 @@ Generated runtime artifacts:
 Machine-readable result:
 
 ```text
-ENTROPY-E2E-FRONTEND-RESULT
+HUB-E2E-FRONTEND-RESULT
 ```
 
-### 7. Quality scan and entropy fix
+### 7. Quality scan and hub fix
 
-`/entropy-scan` runs against affected domains, not the whole repo by default.
+`/hub-scan` runs against affected domains, not the whole repo by default.
 It derives affected areas from the spec, plan, and git diff.
 
 Repo artifacts:
@@ -282,12 +282,12 @@ Repo artifacts:
 - `docs/QUALITY_SCORE.md`
 - `docs/quality-score.json`
 
-If any affected domain is below grade B, `/entropy-fix` runs once with
+If any affected domain is below grade B, `/hub-fix` runs once with
 `--skip-rescan`.
 
 Possible fix artifacts:
 
-- `docs/superpowers/plans/YYYY-MM-DD-entropy-corrections.md`
+- `docs/superpowers/plans/YYYY-MM-DD-hub-corrections.md`
 - code, test, docs, or config changes that address scan findings
 
 Autopilot proceeds to PR creation even if the quality gate still fails after
@@ -304,7 +304,7 @@ docs/autopilot-runs/<run_id>.json
 The archived state replaces `docs/autopilot-state.json` as the durable run
 record.
 
-The PR body includes the normal ship-with-review sections plus entropy-specific
+The PR body includes the normal ship-with-review sections plus hub-specific
 sections:
 
 - Autopilot run
@@ -394,26 +394,26 @@ External artifacts:
 ### 11. Deploy verification
 
 When a full-mode run merges into a non-local target and deploy verification is
-required, autopilot invokes `/entropy-ship` in `deploy_only` mode.
+required, autopilot invokes `/hub-ship` in `deploy_only` mode.
 
-`/entropy-ship` delegates evidence collection to:
+`/hub-ship` delegates evidence collection to:
 
-- `/entropy-check-deploy` for CI/CD and health checks
-- `/entropy-e2e-frontend` for post-deploy frontend verification when frontend
+- `/hub-check-deploy` for CI/CD and health checks
+- `/hub-e2e-frontend` for post-deploy frontend verification when frontend
   files changed
 
 Repo artifacts:
 
 - `docs/deploy-checks/YYYY-MM-DDTHH-MM-SSZ-<environment>-<branch>.json`
-- `docs/entropy-e2e-frontend-runs/*.json` for post-deploy frontend checks
+- `docs/hub-e2e-frontend-runs/*.json` for post-deploy frontend checks
 - updated `docs/autopilot-runs/<run_id>.json`
 
 Machine-readable results:
 
 ```text
-ENTROPY-CHECK-DEPLOY-RESULT
-ENTROPY-E2E-FRONTEND-RESULT
-ENTROPY-SHIP-RESULT
+HUB-CHECK-DEPLOY-RESULT
+HUB-E2E-FRONTEND-RESULT
+HUB-SHIP-RESULT
 ```
 
 Delivery status mapping:
@@ -427,8 +427,8 @@ Delivery status mapping:
 
 ### 12. Tracker closeout
 
-For Linear-dispatched feature tickets, `entropy-linear-autopilot` parses the
-machine-readable return from `entropy-driven-autopilot`.
+For Linear-dispatched feature tickets, `hub-linear-autopilot` parses the
+machine-readable return from `hub-driven-autopilot`.
 
 It moves the ticket to Done only when delivery and ticket-contract gates passed.
 Otherwise, it leaves the ticket In Progress and comments with the PR, state
@@ -440,7 +440,7 @@ autopilot command for the selected ready ticket.
 
 ## What Remains in the Repository
 
-After a complete entropy feature run, the repository may contain:
+After a complete hub feature run, the repository may contain:
 
 | Path | Meaning |
 |---|---|
@@ -448,11 +448,11 @@ After a complete entropy feature run, the repository may contain:
 | `docs/TICKETS.md` | Optional local queue and status mirror. |
 | `docs/superpowers/specs/*-design.md` | The design/spec produced from the ticket. |
 | `docs/superpowers/plans/*.md` | The implementation plan and possible correction plans. |
-| `docs/QUALITY_SCORE.md` | Human-readable entropy quality report. |
-| `docs/quality-score.json` | Machine-readable entropy quality report. |
+| `docs/QUALITY_SCORE.md` | Human-readable hub quality report. |
+| `docs/quality-score.json` | Machine-readable hub quality report. |
 | `docs/autopilot-runs/*.json` | Durable state and decision log for each autopilot run. |
 | `docs/deploy-checks/*.json` | CI/CD and deployed health evidence. |
-| `docs/entropy-e2e-frontend-runs/*.json` | Frontend E2E and visual verification evidence. |
+| `docs/hub-e2e-frontend-runs/*.json` | Frontend E2E and visual verification evidence. |
 | project source files | The actual implementation, tests, migrations, docs, and config changes. |
 
 Runtime artifacts such as Playwright HTML reports may also exist depending on
@@ -461,7 +461,7 @@ them as durable evidence; otherwise they remain ignored or disposable.
 
 ## What Remains Outside the Repository
 
-The entropy workflow also leaves external evidence:
+The hub workflow also leaves external evidence:
 
 - Linear issue status, labels, and comments
 - GitHub PR body and review conversation
@@ -471,7 +471,7 @@ The entropy workflow also leaves external evidence:
 
 ## Failure Modes
 
-Entropy distinguishes between stuck work and shipped-but-not-verified work.
+Hub distinguishes between stuck work and shipped-but-not-verified work.
 
 | Outcome | Meaning | Typical next step |
 |---|---|---|
@@ -484,17 +484,17 @@ Entropy distinguishes between stuck work and shipped-but-not-verified work.
 
 ## Skill-Family Artifacts in This Change Set
 
-This repo change consolidates the workflow under the `entropy-*` family:
+This repo change consolidates the workflow under the `hub-*` family:
 
-- `entropy-ticket` replaces the old ticket drafting role.
-- `entropy-check-deploy` replaces the old deploy-check role.
-- `entropy-e2e-frontend` replaces the old frontend E2E role.
-- `entropy-ship` replaces the old finish-feature role.
-- `entropy-linear-autopilot` replaces the old Linear autopilot role.
-- `entropy-driven-autopilot` now treats the ticket goal as the success
+- `hub-ticket` replaces the old ticket drafting role.
+- `hub-check-deploy` replaces the old deploy-check role.
+- `hub-e2e-frontend` replaces the old frontend E2E role.
+- `hub-ship` replaces the old finish-feature role.
+- `hub-linear-autopilot` replaces the old Linear autopilot role.
+- `hub-driven-autopilot` now treats the ticket goal as the success
   contract and carries that contract through review, merge, deploy, and tracker
   closeout.
 
-The old non-entropy skill directories and config name are removed from the
+The old non-hub skill directories and config name are removed from the
 install list, and the current names are installed as symlinks for both Claude
 Code and Codex.

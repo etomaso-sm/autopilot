@@ -1,24 +1,24 @@
 ---
-name: entropy-check-deploy
+name: hub-check-deploy
 description: >
   Use when CI/CD deploy status or deployed health must be verified after a
-  merge, entropy run, development deploy, or "is it deployed?" question.
-  Triggers on: entropy-check-deploy, verify deploy, deploy status, did it
+  merge, hub run, development deploy, or "is it deployed?" question.
+  Triggers on: hub-check-deploy, verify deploy, deploy status, did it
   deploy, check ci, check pipeline, check actions, development deploy.
 user_invocable: true
 ---
 
-# Entropy Check Deploy — Deploy Gate
+# Hub Check Deploy — Deploy Gate
 
-**Announce at start:** "Running /entropy-check-deploy — entropy deploy verification gate."
+**Announce at start:** "Running /hub-check-deploy — hub deploy verification gate."
 
 ## Overview
 
 Verifies that a branch or environment was deployed by checking the latest CI/CD
 run and, when configured, the deployed HTTP health endpoint. This skill is now
-part of the entropy family: it has a structured input contract, a non-interactive
+part of the hub family: it has a structured input contract, a non-interactive
 autopilot mode, an evidence artifact, and a machine-readable result block that
-`entropy-ship`, `entropy-driven-autopilot`, and `entropy-linear-autopilot` can parse.
+`hub-ship`, `hub-driven-autopilot`, and `hub-linear-autopilot` can parse.
 
 It does not merge, redeploy, or fix failures. It only reports deploy evidence.
 Callers decide whether to retry, fix, or leave a ticket open.
@@ -27,8 +27,8 @@ Callers decide whether to retry, fix, or leave a ticket open.
 
 Interactive:
 ```text
-/entropy-check-deploy
-/entropy-check-deploy development
+/hub-check-deploy
+/hub-check-deploy development
 ```
 
 Structured handoff:
@@ -142,9 +142,9 @@ Do not proceed to health when CI failed or timed out.
 Run only when CI is `success` or CI was absent and `require_ci=false`.
 
 ```bash
-HTTP_CODE=$(curl -s -o /tmp/entropy-check-deploy-body.txt \
+HTTP_CODE=$(curl -s -o /tmp/hub-check-deploy-body.txt \
   -w "%{http_code}" --max-time 10 "$HEALTH_URL")
-head -c 500 /tmp/entropy-check-deploy-body.txt
+head -c 500 /tmp/hub-check-deploy-body.txt
 ```
 
 Rules:
@@ -168,9 +168,9 @@ Include:
 - `deploy_status`, `ci_status`, `health_status`
 - warnings and timestamps
 
-When invoked by `entropy-ship` on the base branch, that caller commits the
+When invoked by `hub-ship` on the base branch, that caller commits the
 artifact. When invoked standalone, leave it unstaged unless the user asks to
-commit. When invoked by `entropy-driven-autopilot`, the caller records the path
+commit. When invoked by `hub-driven-autopilot`, the caller records the path
 inside its archived state file and commits that state update.
 
 ## Phase 6: Final Report
@@ -178,7 +178,7 @@ inside its archived state file and commits that state update.
 Human-readable report:
 
 ```text
-RESULT: entropy-check-deploy
+RESULT: hub-check-deploy
 
 Branch:        <branch>
 Environment:   <environment>
@@ -193,7 +193,7 @@ Warnings:      <count>
 Then emit this machine-readable block exactly:
 
 ```text
-ENTROPY-CHECK-DEPLOY-RESULT:
+HUB-CHECK-DEPLOY-RESULT:
 {
   "deploy_status": "verified | failed | timeout | unconfigured",
   "branch": "development",
@@ -224,4 +224,4 @@ Fields that do not apply must be `null`, not omitted.
   fails or returns `unconfigured`; it is not a pass.
 - **No deploy mutations.** Do not merge, rerun workflows, redeploy, or edit code.
 - **Bounded waits.** Always use `timeout_seconds` when watching CI.
-- **Machine-readable block is stable.** Callers parse `ENTROPY-CHECK-DEPLOY-RESULT:`.
+- **Machine-readable block is stable.** Callers parse `HUB-CHECK-DEPLOY-RESULT:`.

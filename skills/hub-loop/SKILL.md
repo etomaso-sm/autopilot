@@ -1,29 +1,29 @@
 ---
-name: entropy-loop
+name: hub-loop
 description: >
-  Autonomous quality grinder that iterates entropy-scan and entropy-fix until
+  Autonomous quality grinder that iterates hub-scan and hub-fix until
   all domains reach grade A. Escalating strategies, plateau detection, persistent
-  state for session resume. Triggers on: entropy-loop, quality loop, grind to A,
+  state for session resume. Triggers on: hub-loop, quality loop, grind to A,
   fix everything, quality grinder, all A, loop quality, iterate quality.
 user_invocable: true
 ---
 
-<!-- SYNC: entropy-loop depends on entropy-scan dimensions, entropy-fix strategy
-     levels, and entropy-fix --autonomous/--skip-rescan flags.
+<!-- SYNC: hub-loop depends on hub-scan dimensions, hub-fix strategy
+     levels, and hub-fix --autonomous/--skip-rescan flags.
      Update if any of these change. -->
 
-# Entropy Loop
+# Hub Loop
 
-**Announce at start:** "Running /entropy-loop — autonomous quality grinder targeting grade A on all domains."
+**Announce at start:** "Running /hub-loop — autonomous quality grinder targeting grade A on all domains."
 
 ## Overview
 
 Fully autonomous loop: scan → fix → re-scan → repeat until every domain reaches
 grade A. Escalates strategy per domain (simple → aggressive → rewrite). Detects
-plateaus and skips stuck domains. Persists state to `docs/entropy-loop-state.json`
+plateaus and skips stuck domains. Persists state to `docs/hub-loop-state.json`
 so any agent can resume after context limits.
 
-Combines `/entropy-scan` (diagnostic) and `/entropy-fix` (correction) in a loop
+Combines `/hub-scan` (diagnostic) and `/hub-fix` (correction) in a loop
 inspired by autoresearch's autonomous experiment pattern.
 
 ## Pre-flight
@@ -34,9 +34,9 @@ inspired by autoresearch's autonomous experiment pattern.
 # Check for --fresh flag (user wants to start over)
 # Check for existing state file
 if [ "$1" = "--fresh" ]; then
-  rm -f docs/entropy-loop-state.json
+  rm -f docs/hub-loop-state.json
   echo "NEW"
-elif [ -f "docs/entropy-loop-state.json" ]; then
+elif [ -f "docs/hub-loop-state.json" ]; then
   echo "RESUME_CANDIDATE"
 else
   echo "NEW"
@@ -73,9 +73,9 @@ Check for dirty state before creating branch:
 # Verify no uncommitted changes
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARNING: uncommitted changes detected"
-  git stash -m "entropy-loop: stashed before starting"
+  git stash -m "hub-loop: stashed before starting"
 fi
-git checkout -b entropy-loop/$(date +%Y-%m-%d) 2>/dev/null || git checkout entropy-loop/$(date +%Y-%m-%d)
+git checkout -b hub-loop/$(date +%Y-%m-%d) 2>/dev/null || git checkout hub-loop/$(date +%Y-%m-%d)
 ```
 
 Create initial state:
@@ -93,11 +93,11 @@ Create initial state:
 }
 ```
 
-Save to `docs/entropy-loop-state.json`.
+Save to `docs/hub-loop-state.json`.
 
 ## Cycle 1: Initial Full Scan
 
-Run `/entropy-scan` (full repo). This populates `docs/QUALITY_SCORE.md` and
+Run `/hub-scan` (full repo). This populates `docs/QUALITY_SCORE.md` and
 `docs/quality-score.json`.
 
 After scan, populate state domains from the JSON:
@@ -119,8 +119,8 @@ Domains already at A get `"status": "graduated"` immediately.
 
 Commit state:
 ```bash
-git add docs/entropy-loop-state.json
-git commit -m "chore(entropy-loop): initialize state (cycle 1 scan)"
+git add docs/hub-loop-state.json
+git commit -m "chore(hub-loop): initialize state (cycle 1 scan)"
 ```
 
 If all domains are A, skip to Final Report.
@@ -153,8 +153,8 @@ digraph scan_selection {
 }
 ```
 
-- **Normal cycle:** `/entropy-scan <active-domain-1> <active-domain-2> ...`
-- **Spot-check cycle** (every 3 cycles): `/entropy-scan --lite` (full, grades only).
+- **Normal cycle:** `/hub-scan <active-domain-1> <active-domain-2> ...`
+- **Spot-check cycle** (every 3 cycles): `/hub-scan --lite` (full, grades only).
   Update `last_full_scan_cycle` and `next_full_scan_cycle = current + 3`.
 
 If spot-check finds a graduated domain dropped below A:
@@ -169,7 +169,7 @@ Read updated `docs/quality-score.json`. For each active domain:
 - If grade is now A → set `status: "graduated"`, append grade to history
 - If grade unchanged for 2 consecutive cycles → set `status: "needs_human"`,
   add explanation to `dead_ends`
-- If 3+ fixes were reverted in the entropy-fix cycle → set `status: "needs_human"`
+- If 3+ fixes were reverted in the hub-fix cycle → set `status: "needs_human"`
 
 **Check stop conditions:**
 1. All domains graduated → Final Report (success)
@@ -185,7 +185,7 @@ Sort active domains by:
 
 ### Step 4: Select strategy per domain
 
-| Domain cycles completed | Strategy | Passed to entropy-fix |
+| Domain cycles completed | Strategy | Passed to hub-fix |
 |------------------------|----------|----------------------|
 | 0-1 | `--strategy=simple` | Atomic fixes only: tokens, aria, validation, lint, characterization tests |
 | 2-3 | `--strategy=aggressive` | Structural refactors: extract class/service, split components, patterns, DI |
@@ -195,15 +195,15 @@ Update `strategy` in domain state.
 
 ### Step 5: Fix
 
-Run `/entropy-fix <domain> --strategy=<level> --skip-rescan --autonomous`
+Run `/hub-fix <domain> --strategy=<level> --skip-rescan --autonomous`
 for each active domain, in priority order.
 
 Flags explained:
 - `--strategy=<level>`: controls fix aggressiveness (from Step 4)
-- `--skip-rescan`: entropy-loop manages its own scan cycles (avoids double scan)
+- `--skip-rescan`: hub-loop manages its own scan cycles (avoids double scan)
 - `--autonomous`: suppresses "3 reverts → STOP" — logs and continues instead
 
-entropy-fix runs its full process: plan → baseline → fix cycle → gate.
+hub-fix runs its full process: plan → baseline → fix cycle → gate.
 
 ### Step 6: Update state and commit
 
@@ -213,8 +213,8 @@ After all fixes in this cycle:
 # Update state file with new grades, statuses, histories
 # Increment current_cycle
 
-git add docs/entropy-loop-state.json docs/QUALITY_SCORE.md docs/quality-score.json
-git commit -m "chore(entropy-loop): cycle N complete (<summary>)"
+git add docs/hub-loop-state.json docs/QUALITY_SCORE.md docs/quality-score.json
+git commit -m "chore(hub-loop): cycle N complete (<summary>)"
 ```
 
 Summary format: `"3 domains active, users C→B, billing D→D (plateau)"`
@@ -227,9 +227,9 @@ If no active domains → Final Report.
 ## Final Report
 
 ```
-entropy-loop: complete
+hub-loop: complete
   Cycles: N
-  Branch: entropy-loop/YYYY-MM-DD
+  Branch: hub-loop/YYYY-MM-DD
 
   Results:
   | Domain | Start | End | Cycles | Status |
@@ -243,21 +243,21 @@ entropy-loop: complete
 ```
 
 If all domains A:
-> "All domains at grade A. Run `/entropy-scan` anytime to verify."
+> "All domains at grade A. Run `/hub-scan` anytime to verify."
 
 If partial:
 > "Some domains need human intervention. See dead ends above.
-> You can address these manually and run `/entropy-loop` again to re-evaluate."
+> You can address these manually and run `/hub-loop` again to re-evaluate."
 
 ## Important Rules
 
 - **Never stop to ask.** This is fully autonomous. The only pauses are: spot-check regression, and stale state prompt (>24h old).
 - **Completed loops don't block new ones.** If all domains are resolved, the state file is deleted and a fresh loop starts automatically.
-- **State is sacred.** Commit `docs/entropy-loop-state.json` after every cycle. An agent crash must not lose progress.
+- **State is sacred.** Commit `docs/hub-loop-state.json` after every cycle. An agent crash must not lose progress.
 - **Escalate, don't thrash.** Same strategy failing twice → escalate to next level. Don't retry the same approach.
 - **Graduated means done.** Once a domain hits A, don't touch it unless a spot-check detects regression.
 - **Dead ends are knowledge.** Always log what didn't work in `dead_ends` so future agents (or humans) know what was tried.
 - **Max 5 cycles per domain.** Hard cap. After 5 cycles, the domain is either A or needs_human. No exceptions.
-- **Full test suite gate.** Inherited from entropy-fix. Every fix in every cycle must pass the full suite against baseline.
-- **Use entropy-fix flags.** Always pass `--skip-rescan --autonomous` to entropy-fix. Scans are loop's responsibility. Stopping is loop's decision.
-- **Lite mode for spot-checks.** Use `/entropy-scan --lite` for spot-check cycles to save tokens. Full scan only for cycle 1 and final verification.
+- **Full test suite gate.** Inherited from hub-fix. Every fix in every cycle must pass the full suite against baseline.
+- **Use hub-fix flags.** Always pass `--skip-rescan --autonomous` to hub-fix. Scans are loop's responsibility. Stopping is loop's decision.
+- **Lite mode for spot-checks.** Use `/hub-scan --lite` for spot-check cycles to save tokens. Full scan only for cycle 1 and final verification.

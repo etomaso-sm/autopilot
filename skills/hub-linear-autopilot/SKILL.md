@@ -1,35 +1,35 @@
 ---
-name: entropy-linear-autopilot
+name: hub-linear-autopilot
 description: >
   Use when Linear tickets in a configured project should be processed
-  automatically through entropy workflows, especially scheduled ticket queues or
-  autopilot batches. Triggers on: entropy-linear-autopilot, process tickets,
+  automatically through hub workflows, especially scheduled ticket queues or
+  autopilot batches. Triggers on: hub-linear-autopilot, process tickets,
   autopilot, auto tickets, procesar tickets, tickets automáticos.
 user_invocable: true
 ---
 
-# Entropy Linear Autopilot
+# Hub Linear Autopilot
 
-**Announce at start:** "Running /entropy-linear-autopilot — fetching and processing Linear tickets through quality pipelines."
+**Announce at start:** "Running /hub-linear-autopilot — fetching and processing Linear tickets through quality pipelines."
 
 ## Overview
 
 Fetches tickets in a configured status from a Linear project, classifies each
 as bug or feature, and dispatches parallel agents to process them through
-`/entropy-bugfix` (bugs) or `/entropy-driven-autopilot` (features). Updates
+`/hub-bugfix` (bugs) or `/hub-driven-autopilot` (features). Updates
 ticket status in Linear as processing progresses.
 
 ## Prerequisites
 
 - Linear MCP server connected and accessible via OAuth (see `/linear` skill for setup)
-- `entropy-linear-autopilot.json` at repo root with project configuration
-- Access to `/entropy-driven-autopilot` and `/entropy-bugfix` skills
+- `hub-linear-autopilot.json` at repo root with project configuration
+- Access to `/hub-driven-autopilot` and `/hub-bugfix` skills
 
 ## Phase 0: Setup
 
-1. Read `entropy-linear-autopilot.json` from the repo root.
+1. Read `hub-linear-autopilot.json` from the repo root.
    - If missing, stop and report:
-     > "No `entropy-linear-autopilot.json` found at repo root. Create one with at minimum: `{ "project": "<your-project-name>" }`."
+     > "No `hub-linear-autopilot.json` found at repo root. Create one with at minimum: `{ "project": "<your-project-name>" }`."
    - Apply defaults for any missing fields:
      - `sourceStatus`: `"Todo"`
      - `inProgressStatus`: `"In Progress"`
@@ -119,18 +119,18 @@ ticket status in Linear as processing progresses.
    - **Feature signals:** add, implement, create, new, support, enable, build,
      design, integrate, migrate
 
-   If ambiguous or unclear, default to **feature** (entropy-driven is the safer
+   If ambiguous or unclear, default to **feature** (hub-driven is the safer
    pipeline for unknowns — it includes brainstorming to clarify scope).
 
-  **Step C — Entropy input block:**
+  **Step C — Hub input block:**
    Check the issue description for this section:
    ~~~markdown
-   ## Entropy autopilot input
+   ## Hub autopilot input
    ```json
    { ... }
    ```
    ~~~
-   If present and valid JSON, store it as `ENTROPY_INPUT`. It is the source of
+   If present and valid JSON, store it as `HUB_INPUT`. It is the source of
    truth for feature dispatch fields, including `goal`. Config defaults fill
    only missing fields.
    If invalid, post a warning comment and fall back to `{title}\n\n{description}`.
@@ -173,10 +173,10 @@ ticket status in Linear as processing progresses.
    - Description: {description}
 
    ## Instructions
-   1. Invoke `/entropy-bugfix` with the ticket description above as the bug report.
-   2. Let entropy-bugfix run its full pipeline: root cause investigation,
-      failing repro, minimal fix, risk classification, entropy gate.
-   3. When creating a PR (via entropy-bugfix's closeout or ship-with-review),
+   1. Invoke `/hub-bugfix` with the ticket description above as the bug report.
+   2. Let hub-bugfix run its full pipeline: root cause investigation,
+      failing repro, minimal fix, risk classification, hub gate.
+   3. When creating a PR (via hub-bugfix's closeout or ship-with-review),
       include "Closes {ticket-id}" in the PR body.
    4. Return a summary: root cause found, files changed, PR URL (if created),
       or error description if something failed.
@@ -193,8 +193,8 @@ ticket status in Linear as processing progresses.
    - Description: {description}
 
    ## Instructions
-   1. Invoke `/entropy-driven-autopilot` with this structured JSON. If the
-      Linear description contains a valid `## Entropy autopilot input` JSON
+   1. Invoke `/hub-driven-autopilot` with this structured JSON. If the
+      Linear description contains a valid `## Hub autopilot input` JSON
       block, use that object first and fill missing fields from the config.
       Otherwise use the fallback below:
       {
@@ -209,11 +209,11 @@ ticket status in Linear as processing progresses.
    2. Let it run its full autonomous pipeline. It will create a branch,
       write a spec and plan, implement, test, open a PR, dispatch a
       fresh-agent code review, optionally merge, and when configured verify
-      the development deploy through the entropy ship gates — or stop with a
+      the development deploy through the hub ship gates — or stop with a
       `stuck_reason` if an escape hatch triggers.
    3. Return the Machine-readable JSON block defined in
-      `skills/entropy-driven-autopilot/SKILL.md → ## Output → Machine-readable
-      return`. That block is the canonical contract; entropy-linear-autopilot parses
+      `skills/hub-driven-autopilot/SKILL.md → ## Output → Machine-readable
+      return`. That block is the canonical contract; hub-linear-autopilot parses
       `status`, `pr_url`, `review_verdict`, `stuck_reason`, `state_file`,
       `ticket_goal_satisfied`, `success_criteria_satisfied`,
       `scope_boundaries_respected`,
@@ -229,8 +229,8 @@ ticket status in Linear as processing progresses.
 ## Phase 4: Close
 
 11. Parse each agent's return. Features emit the canonical JSON contract
-    (see `skills/entropy-driven-autopilot/SKILL.md → ## Output → Machine-readable
-    return`); bugs still emit a free-text summary from `/entropy-bugfix`.
+    (see `skills/hub-driven-autopilot/SKILL.md → ## Output → Machine-readable
+    return`); bugs still emit a free-text summary from `/hub-bugfix`.
 
     **Feature tickets — fully verified**:
     Condition: `status: shipped`, `delivery_status: verified`,
@@ -277,7 +277,7 @@ ticket status in Linear as processing progresses.
     - If `LABEL_IDS.stuck` is non-null, attach it:
       > "Add label '{labels.stuck}' to issue {ticket-id}"
 
-    **Bug tickets — success** (free-text from `/entropy-bugfix` that includes
+    **Bug tickets — success** (free-text from `/hub-bugfix` that includes
     a PR URL or "no fix needed"):
     - Move to `doneStatus`. Record the PR URL if present.
     - If `LABEL_IDS.shipped` is non-null, attach it.
@@ -295,7 +295,7 @@ ticket status in Linear as processing progresses.
 12. Print the final report:
 
     ```
-    entropy-linear-autopilot: run complete
+    hub-linear-autopilot: run complete
 
     | Ticket | Title | Type | Status | PR | Delivery | Deploy | Stuck reason |
     |--------|-------|------|--------|-----|----------|--------|--------------|
@@ -319,7 +319,7 @@ ticket status in Linear as processing progresses.
 ## Phase 5: Schedule Offer
 
 13. If `schedule` in config is `null`, offer:
-    > "Want to set up a schedule to run `/entropy-linear-autopilot` automatically?
+    > "Want to set up a schedule to run `/hub-linear-autopilot` automatically?
     > This uses `/schedule` to create a recurring trigger. Suggested: every 30 minutes.
     >
     > 1. **Yes, every 30 minutes**
@@ -328,7 +328,7 @@ ticket status in Linear as processing progresses.
 
 14. If the user accepts:
     - Invoke `/schedule` to create the trigger with the chosen frequency.
-    - Update `entropy-linear-autopilot.json` to set `schedule` to the chosen value
+    - Update `hub-linear-autopilot.json` to set `schedule` to the chosen value
       (e.g., `"every 30 minutes"`).
     - Commit the config change.
 

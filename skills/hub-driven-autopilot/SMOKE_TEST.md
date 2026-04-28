@@ -1,4 +1,4 @@
-# Smoke test — entropy-driven-autopilot
+# Smoke test — hub-driven-autopilot
 
 Run this in a scratch repo or sandbox worktree. Do NOT run in `ai-skills` itself.
 
@@ -17,14 +17,14 @@ git add . && git commit -m "seed"
 Symlink the local ai-skills repo so the skill is available:
 ```bash
 mkdir -p .claude/skills
-ln -s $HOME/.superset/projects/impactia-dev-cookbook/skills/entropy-driven-autopilot .claude/skills/
+ln -s $HOME/.superset/projects/impactia-dev-cookbook/skills/hub-driven-autopilot .claude/skills/
 ```
 
 ## Invoke
 
 Freeform:
 ```
-/entropy-driven-autopilot Add a simple CLI that prints "hello <name>" when run.
+/hub-driven-autopilot Add a simple CLI that prints "hello <name>" when run.
 ```
 
 ## Expected trace
@@ -32,12 +32,12 @@ Freeform:
 1. Bootstrap creates branch `autopilot/YYYY-MM-DD-add-a-simple-cli-...`.
 2. `docs/autopilot-state.json` is committed with `current_step: "bootstrap"`.
 3. Brainstorming writes a spec at `docs/superpowers/specs/YYYY-MM-DD-*-design.md` with an `## Autopilot Q&A` section and an `## Approach` section naming three options and a chosen one.
-4. `entropy-aware` enriches the spec.
+4. `hub-aware` enriches the spec.
 5. `writing-plans` writes a plan at `docs/superpowers/plans/YYYY-MM-DD-*.md`.
-6. `entropy-aware` enriches the plan.
+6. `hub-aware` enriches the plan.
 7. `subagent-driven-development` runs the plan tasks. A CLI file is created with tests.
-8. `entropy-scan` runs on the affected domain.
-9. If grades < B, `entropy-fix` runs once.
+8. `hub-scan` runs on the affected domain.
+9. If grades < B, `hub-fix` runs once.
 10. State file is archived to `docs/autopilot-runs/<run_id>.json`.
 11. `ship-with-review` opens a PR with the three autopilot sections appended.
 12. Fresh-agent review dispatches and returns a JSON block with `verdict` and `findings`.

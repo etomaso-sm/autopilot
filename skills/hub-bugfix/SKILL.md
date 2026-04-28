@@ -1,24 +1,24 @@
 ---
-name: entropy-bugfix
+name: hub-bugfix
 description: Use when fixing any bug, test failure, regression, or unexpected behavior, including flaky tests, integration failures, and performance issues treated as bugs, especially when the fix may cross boundaries or touch sensitive domains
 user_invocable: true
 ---
 
-<!-- SYNC: entropy-bugfix depends on entropy-scan grades and entropy-fix strategy
-     semantics. Update this skill if entropy-scan grade thresholds or
-     entropy-fix invocation rules change.
-     Also invokes entropy-e2e-frontend post-deploy when frontend files are touched
+<!-- SYNC: hub-bugfix depends on hub-scan grades and hub-fix strategy
+     semantics. Update this skill if hub-scan grade thresholds or
+     hub-fix invocation rules change.
+     Also invokes hub-e2e-frontend post-deploy when frontend files are touched
      (handoff with mode=post_deploy, target_env=deploy). Update this skill if the handoff
      contract changes. -->
 
-# Entropy Bugfix
+# Hub Bugfix
 
-**Announce at start:** "Running /entropy-bugfix — root-cause-first bugfix with conditional entropy validation."
+**Announce at start:** "Running /hub-bugfix — root-cause-first bugfix with conditional hub validation."
 
 ## Overview
 
 Default bug workflow: investigate the root cause, encode a failing repro, apply
-the smallest fix that addresses the cause, then escalate to entropy validation
+the smallest fix that addresses the cause, then escalate to hub validation
 only when the change is elevated or sensitive.
 
 ## When to Use
@@ -71,30 +71,30 @@ Classify the final fix before closing:
 
 | Class | Trigger | Next Step |
 |------|---------|-----------|
-| **local** | Exactly 1 changed file, non-sensitive area, no boundary or shared-config change | Skip entropy gate |
-| **elevated** | 2+ changed files, or one-file change at a boundary, shared utility, config, or integration seam | Run partial `entropy-scan` |
-| **sensitive** | Auth, permissions, billing/payments, security, secrets, validation, serialization, persistence/data integrity, CI/CD, deploy, shared infra | Run partial `entropy-scan` |
+| **local** | Exactly 1 changed file, non-sensitive area, no boundary or shared-config change | Skip hub gate |
+| **elevated** | 2+ changed files, or one-file change at a boundary, shared utility, config, or integration seam | Run partial `hub-scan` |
+| **sensitive** | Auth, permissions, billing/payments, security, secrets, validation, serialization, persistence/data integrity, CI/CD, deploy, shared infra | Run partial `hub-scan` |
 
 If in doubt, classify upward.
 
-## Entropy Gate
+## Hub Gate
 
 Only run this phase for `elevated` or `sensitive` fixes.
 
 1. Determine affected domains from the touched paths and bug context.
-2. Run `/entropy-scan <affected-domain-1> <affected-domain-2>`.
+2. Run `/hub-scan <affected-domain-1> <affected-domain-2>`.
 3. If all affected domains are `>= B`, continue to closeout.
 4. If any affected domain is `< B`, run:
 
 ```text
-/entropy-fix <affected-domain-1> <affected-domain-2> --strategy=simple
+/hub-fix <affected-domain-1> <affected-domain-2> --strategy=simple
 ```
 
 5. Re-check once.
 6. If any affected domain is still `< B`, report the findings and stop.
 
 Do not escalate to aggressive or rewrite strategy from inside a normal bugfix.
-That is `entropy-loop` or explicit follow-up work.
+That is `hub-loop` or explicit follow-up work.
 
 ## Closeout
 
@@ -103,7 +103,7 @@ Always report:
 - repro artefact
 - changed files or affected domains
 - risk class
-- whether the entropy gate ran
+- whether the hub gate ran
 - scan results if it ran
 
 Verification must include:
@@ -116,9 +116,9 @@ Verification must include:
 Run after the fix is deployed to staging/preview. Skip if there is no deploy
 step for the current branch.
 
-1. Run the [Frontend-Change Detection block](../entropy-e2e-frontend/SKILL.md#frontend-change-detection-shared) against the bugfix branch.
+1. Run the [Frontend-Change Detection block](../hub-e2e-frontend/SKILL.md#frontend-change-detection-shared) against the bugfix branch.
 2. If no frontend files touched → skip silently.
-3. If frontend files touched → invoke `/entropy-e2e-frontend` with handoff:
+3. If frontend files touched → invoke `/hub-e2e-frontend` with handoff:
 
 ```json
 {
@@ -130,7 +130,7 @@ step for the current branch.
 }
 ```
 
-Runs against `VR_DEPLOY_URL` from `.env.local`. If missing, `entropy-e2e-frontend`'s
+Runs against `VR_DEPLOY_URL` from `.env.local`. If missing, `hub-e2e-frontend`'s
 Phase 0 will prompt once and persist it.
 
 A visual failure here indicates either (a) the fix regressed something else, or
@@ -142,7 +142,7 @@ for the decision.
 ## Common Mistakes
 
 - Fixing the symptom before reproducing and tracing the cause
-- Running `entropy-scan` on every tiny one-file local bug
+- Running `hub-scan` on every tiny one-file local bug
 - Skipping the scan for a one-file fix in a sensitive domain
 - Turning a bugfix into an architecture rewrite
-- Letting `entropy-fix` expand scope beyond one simple correction cycle
+- Letting `hub-fix` expand scope beyond one simple correction cycle

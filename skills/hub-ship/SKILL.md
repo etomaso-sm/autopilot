@@ -1,33 +1,33 @@
 ---
-name: entropy-ship
+name: hub-ship
 description: >
   Use when implementation is complete, a feature is ready to ship, or a merged
-  entropy/autopilot branch needs development deploy verification. Triggers on:
-  entropy-ship, entropy-release, ship it, ready to merge, done implementing,
+  hub/autopilot branch needs development deploy verification. Triggers on:
+  hub-ship, hub-release, ship it, ready to merge, done implementing,
   deploy to development, verify development deploy, feature complete.
 user_invocable: true
 ---
 
-# Entropy Ship — Delivery Gate
+# Hub Ship — Delivery Gate
 
-**Announce at start:** "Running /entropy-ship — entropy ship and deploy verification gate."
+**Announce at start:** "Running /hub-ship — hub ship and deploy verification gate."
 
 ## Overview
 
 Complete post-implementation ship pipeline for the Impactia team. This is now
-the entropy family's deploy verification gate: it can run the full interactive
+the hub family's deploy verification gate: it can run the full interactive
 ship process, or it can receive a structured handoff from
-`entropy-driven-autopilot` after a merge and verify development deploy evidence.
+`hub-driven-autopilot` after a merge and verify development deploy evidence.
 
 It still replaces `superpowers:finishing-a-development-branch` for manual work,
-but deploy evidence is delegated to `/entropy-check-deploy` and deployed frontend
-verification is delegated to `/entropy-e2e-frontend` using their entropy contracts.
+but deploy evidence is delegated to `/hub-check-deploy` and deployed frontend
+verification is delegated to `/hub-e2e-frontend` using their hub contracts.
 
 > **Note:** If you're using `superpowers:executing-plans` or `superpowers:subagent-driven-development`
 > outside of `/dev-flow`, those skills will invoke `finishing-a-development-branch` instead.
-> The team's preferred ship path is `/entropy-ship` via `/dev-flow`.
+> The team's preferred ship path is `/hub-ship` via `/dev-flow`.
 
-## Entropy Contract
+## Hub Contract
 
 Structured handoff:
 
@@ -55,7 +55,7 @@ Structured handoff:
 | `environment` | `development` | Deploy target to verify. |
 | `pr_url` | `null` | PR associated with this ship. |
 | `changed_files` | git diff fallback | Used to decide post-deploy frontend E2E scope. |
-| `quality_gate` | `null` | Entropy quality result from upstream. |
+| `quality_gate` | `null` | Hub quality result from upstream. |
 | `review_verdict` | `null` | Fresh-agent review verdict from upstream. |
 | `deploy_only` | `false` | When true, skip pre-merge ship phases and only verify deploy/post-deploy gates for an already-merged PR. |
 | `require_deploy` | `true` | Whether deploy verification gates success. |
@@ -64,7 +64,7 @@ Structured handoff:
 Final machine-readable marker:
 
 ```text
-ENTROPY-SHIP-RESULT:
+HUB-SHIP-RESULT:
 {
   "ship_status": "verified | failed | blocked | partial",
   "branch": "autopilot/...",
@@ -251,13 +251,13 @@ git commit -m "test(e2e): add E2E tests for <feature>"
 
 Only runs when `HAS_PLAYWRIGHT=true` (detected in Phase 1).
 
-Invoke `/entropy-e2e-frontend` skill. It will:
+Invoke `/hub-e2e-frontend` skill. It will:
 1. Analyze changed frontend files
 2. Generate missing E2E tests (functional + visual snapshots)
 3. Run all Playwright tests
 4. Handle visual baseline updates (with user approval)
 
-If `/entropy-e2e-frontend` reports failures after 3 attempts: STOP and report to user.
+If `/hub-e2e-frontend` reports failures after 3 attempts: STOP and report to user.
 
 **Do NOT proceed to Phase 4 with failing frontend E2E tests.**
 
@@ -270,7 +270,7 @@ Run all tests (not just the new ones):
 # Backend E2E
 pytest e2e/ -v --tb=long 2>&1
 
-# Frontend E2E — skip if Phase 3.5 already ran /entropy-e2e-frontend successfully.
+# Frontend E2E — skip if Phase 3.5 already ran /hub-e2e-frontend successfully.
 # Only run here if HAS_PLAYWRIGHT=true AND Phase 3.5 was skipped or not invoked.
 if [ "$HAS_PLAYWRIGHT" = true ]; then
   npx playwright test --reporter=dot 2>&1
@@ -434,8 +434,8 @@ git checkout <feature-branch>
 
 ## Phase 10: Verify Deploy
 
-Canonical entropy path: invoke `/entropy-check-deploy` with structured handoff and parse
-`ENTROPY-CHECK-DEPLOY-RESULT`. The commands below remain as fallback implementation
+Canonical hub path: invoke `/hub-check-deploy` with structured handoff and parse
+`HUB-CHECK-DEPLOY-RESULT`. The commands below remain as fallback implementation
 detail when a caller cannot invoke another skill.
 
 ```json
@@ -585,7 +585,7 @@ E2E_BASE_URL=$(grep -i 'HEALTH_CHECK_URL:' CLAUDE.md 2>/dev/null | awk '{print $
 pytest e2e/ -v --tb=long 2>&1
 ```
 
-2. **Run frontend E2E against deployed environment** using the entropy contract
+2. **Run frontend E2E against deployed environment** using the hub contract
    if `HAS_PLAYWRIGHT=true` or frontend files changed:
 
 ```json
@@ -599,7 +599,7 @@ pytest e2e/ -v --tb=long 2>&1
 }
 ```
 
-Invoke `/entropy-e2e-frontend` and parse `ENTROPY-E2E-FRONTEND-RESULT`.
+Invoke `/hub-e2e-frontend` and parse `HUB-E2E-FRONTEND-RESULT`.
 
 Gate:
 - `result=pass` → continue.
@@ -634,11 +634,11 @@ REPORT
 Also write a structured artifact:
 
 ```text
-docs/entropy-ship-runs/YYYY-MM-DDTHH-MM-SSZ-<environment>.json
+docs/hub-ship-runs/YYYY-MM-DDTHH-MM-SSZ-<environment>.json
 ```
 
-Include parsed input, deploy result from `/entropy-check-deploy`, backend E2E summary,
-frontend `ENTROPY-E2E-FRONTEND-RESULT`, artifact paths, final `ship_status`, warnings,
+Include parsed input, deploy result from `/hub-check-deploy`, backend E2E summary,
+frontend `HUB-E2E-FRONTEND-RESULT`, artifact paths, final `ship_status`, warnings,
 and timestamp.
 
 4. **Commit the report:**
@@ -656,7 +656,7 @@ git push origin "$BASE_BRANCH"
 - ⛔ If any post-deploy E2E test fails: fix → re-deploy → re-run (max 3 attempts)
 - ⛔ After 3 failures: STOP and report to user
 - ⛔ In autopilot mode, do not ask. Return `ship_status=partial` with the
-  failing artifact path so `entropy-linear-autopilot` can keep the ticket open.
+  failing artifact path so `hub-linear-autopilot` can keep the ticket open.
 
 ### Rationalization table
 
@@ -707,7 +707,7 @@ Go back to Phase 10. After 3 failed attempts, **STOP**:
 After all phases complete (including Phase 11):
 
 ```
-RESULT: entropy-ship
+RESULT: hub-ship
 
 Feature:           <branch name>
 Ship status:       verified | failed | blocked | partial
@@ -722,7 +722,7 @@ Deploy:            verified | failed | timeout | unconfigured (run #<run_id>)
 Health check:      <url> -> <status_code> | skipped | not configured
 Post-deploy E2E:   X backend passed, Y frontend passed | <failures>
 Run URL:           <gh run URL>
-Artifacts:         docs/deploy-checks/...; docs/entropy-ship-runs/...
+Artifacts:         docs/deploy-checks/...; docs/hub-ship-runs/...
 ```
 
 ⚠️ **The Final Report is INCOMPLETE without the `Post-deploy E2E` line.**
@@ -731,7 +731,7 @@ If that line is missing, the report has not been generated correctly.
 Then emit this machine-readable block exactly:
 
 ```text
-ENTROPY-SHIP-RESULT:
+HUB-SHIP-RESULT:
 {
   "ship_status": "verified | failed | blocked | partial",
   "branch": "<feature branch>",
@@ -753,7 +753,7 @@ ENTROPY-SHIP-RESULT:
 ```
 
 Fields that do not apply must be `null`, not omitted. Callers parse the
-`ENTROPY-SHIP-RESULT:` marker.
+`HUB-SHIP-RESULT:` marker.
 
 ### Branch Cleanup
 
@@ -791,11 +791,11 @@ If the user declines, that's fine — the branch stays. Never delete without con
 - **No shortcuts**: Do not skip phases even if the change seems small
 - **Feature branch preserved**: Always return to the feature branch after pushing
 - **Deploy is the goal**: The skill doesn't end until deploy AND post-deploy E2E pass
-- **Entropy gate contract**: In autopilot mode, success means
-  `ENTROPY-SHIP-RESULT.ship_status == "verified"`. Anything else keeps the
+- **Hub gate contract**: In autopilot mode, success means
+  `HUB-SHIP-RESULT.ship_status == "verified"`. Anything else keeps the
   owning ticket open.
-- **Delegate deploy evidence**: Use `/entropy-check-deploy` for CI/CD + health evidence
-  and `/entropy-e2e-frontend` with `mode=post_deploy` for deployed frontend checks.
+- **Delegate deploy evidence**: Use `/hub-check-deploy` for CI/CD + health evidence
+  and `/hub-e2e-frontend` with `mode=post_deploy` for deployed frontend checks.
 - **Autopilot never prompts**: missing config, failed deploy, or failed E2E must
   become structured `blocked`, `partial`, or `failed` results.
 

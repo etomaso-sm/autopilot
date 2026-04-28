@@ -1,33 +1,33 @@
 ---
-name: entropy-fix
+name: hub-fix
 description: >
-  Execute correction plans from entropy-scan findings. Takes QUALITY_SCORE.md,
+  Execute correction plans from hub-scan findings. Takes QUALITY_SCORE.md,
   establishes test baseline, applies fixes with full-suite gating, and re-scans.
-  Triggers on: entropy-fix, fix quality, fix entropy, apply corrections,
+  Triggers on: hub-fix, fix quality, fix hub, apply corrections,
   fix tech debt, correct findings.
 user_invocable: true
 ---
 
-<!-- SYNC: entropy-fix depends on entropy-scan dimension names and priority order.
-     Update priority list if entropy-scan agents change.
-     Also syncs with entropy-loop for strategy levels and autonomous mode.
-     Also used by entropy-bugfix for single-cycle simple corrections after
+<!-- SYNC: hub-fix depends on hub-scan dimension names and priority order.
+     Update priority list if hub-scan agents change.
+     Also syncs with hub-loop for strategy levels and autonomous mode.
+     Also used by hub-bugfix for single-cycle simple corrections after
      elevated or sensitive bug fixes. -->
 
-# Entropy Fix
+# Hub Fix
 
-**Announce at start:** "Running /entropy-fix — applying corrections from quality scan."
+**Announce at start:** "Running /hub-fix — applying corrections from quality scan."
 
 ## Overview
 
-Takes the output of `/entropy-scan` (specifically `docs/QUALITY_SCORE.md` and
+Takes the output of `/hub-scan` (specifically `docs/QUALITY_SCORE.md` and
 `docs/quality-score.json`) and systematically fixes the findings. Every fix is
 gated by the full test suite. This is the execution counterpart to
-`/entropy-scan` (diagnostic).
+`/hub-scan` (diagnostic).
 
 ### Partial Fix
 
-Supports fixing specific domains: `/entropy-fix billing frontend/dashboard`
+Supports fixing specific domains: `/hub-fix billing frontend/dashboard`
 
 When domains are specified:
 - Only process findings for those domains
@@ -37,16 +37,16 @@ When domains are specified:
 ### Options
 
 - `--skip-rescan`: Skip Phase 4 re-scan. Use when the caller will run its own
-  scan (e.g., entropy-loop manages scan cycles independently).
+  scan (e.g., hub-loop manages scan cycles independently).
 - `--strategy=<simple|aggressive|rewrite>`: Set the strategy level for the
   correction plan. Defaults to `simple`. See Strategy Levels below.
 - `--autonomous`: Suppress "3 reverts → STOP" behavior. Instead of stopping to
   ask the user, log the issue and continue to next domain. Use when invoked by
-  entropy-loop or other autonomous orchestrators.
+  hub-loop or other autonomous orchestrators.
 
 ## Strategy Levels
 
-When invoked with a strategy level, entropy-fix adjusts the aggressiveness of
+When invoked with a strategy level, hub-fix adjusts the aggressiveness of
 its correction plan:
 
 | Strategy | What's allowed | What's NOT allowed |
@@ -61,7 +61,7 @@ include tasks that match the current strategy level.
 ## Pre-flight
 
 Read `docs/QUALITY_SCORE.md` and `docs/quality-score.json`. If neither exists:
-> "No quality score found. Run `/entropy-scan` first to generate findings."
+> "No quality score found. Run `/hub-scan` first to generate findings."
 > Stop.
 
 If they exist, parse Detailed Findings and Top 5 Refactoring Priorities.
@@ -140,9 +140,9 @@ on the findings. The plan should:
 4. Order by impact within each priority: fixes that improve the most domains first
 5. Each task should be atomic: one refactoring at a time
 6. Include the fix type classification for each task
-7. Save to `docs/superpowers/plans/YYYY-MM-DD-entropy-corrections.md`
+7. Save to `docs/superpowers/plans/YYYY-MM-DD-hub-corrections.md`
    - If file already exists (repeated invocations), append cycle number:
-     `YYYY-MM-DD-entropy-corrections-cycle-2.md`
+     `YYYY-MM-DD-hub-corrections-cycle-2.md`
 
 ## Phase 2: Establish test baseline
 
@@ -153,22 +153,22 @@ Use the detected runners from Pre-flight:
 ```bash
 # Run each detected runner and capture results
 # Example for pytest:
-pytest tests/ -v --tb=short 2>&1 | tee /tmp/entropy-baseline-backend.txt
-BACKEND_PASSED=$(grep -c "PASSED" /tmp/entropy-baseline-backend.txt)
-BACKEND_FAILED=$(grep -c "FAILED" /tmp/entropy-baseline-backend.txt)
+pytest tests/ -v --tb=short 2>&1 | tee /tmp/hub-baseline-backend.txt
+BACKEND_PASSED=$(grep -c "PASSED" /tmp/hub-baseline-backend.txt)
+BACKEND_FAILED=$(grep -c "FAILED" /tmp/hub-baseline-backend.txt)
 
 # Example for vitest/jest:
-npx vitest run 2>&1 | tee /tmp/entropy-baseline-frontend.txt
+npx vitest run 2>&1 | tee /tmp/hub-baseline-frontend.txt
 # OR
-npx jest --ci 2>&1 | tee /tmp/entropy-baseline-frontend.txt
+npx jest --ci 2>&1 | tee /tmp/hub-baseline-frontend.txt
 
 # Linter baseline (for frontend quality fixes):
-npx eslint src/ 2>&1 | tee /tmp/entropy-baseline-lint.txt
-LINT_ERRORS=$(grep -c "error" /tmp/entropy-baseline-lint.txt || echo 0)
+npx eslint src/ 2>&1 | tee /tmp/hub-baseline-lint.txt
+LINT_ERRORS=$(grep -c "error" /tmp/hub-baseline-lint.txt || echo 0)
 
 # Type check baseline:
-npx tsc --noEmit 2>&1 | tee /tmp/entropy-baseline-types.txt
-TYPE_ERRORS=$(grep -c "error TS" /tmp/entropy-baseline-types.txt || echo 0)
+npx tsc --noEmit 2>&1 | tee /tmp/hub-baseline-types.txt
+TYPE_ERRORS=$(grep -c "error TS" /tmp/hub-baseline-types.txt || echo 0)
 ```
 
 Record:
@@ -230,7 +230,7 @@ Invoke `superpowers:subagent-driven-development` (if subagents available) or
 
 1. **Build check** — verify the project builds before the change:
    ```bash
-   npm run build 2>&1 | tee /tmp/entropy-build-before.txt
+   npm run build 2>&1 | tee /tmp/hub-build-before.txt
    ```
 
 2. **Apply fix** — extract strings to i18n, add `React.lazy()`, replace
@@ -248,7 +248,7 @@ Invoke `superpowers:subagent-driven-development` (if subagents available) or
 2. **Verify against code** — confirm what the correct value should be:
    ```bash
    # Example: doc says "10 agents" — count actual agents
-   grep -c "### Agent" skills/entropy-scan/SKILL.md
+   grep -c "### Agent" skills/hub-scan/SKILL.md
    # Example: doc references app/billing/processor.py — check if it exists
    ls app/billing/processor.py 2>/dev/null || echo "MISSING"
    ```
@@ -278,7 +278,7 @@ Invoke `superpowers:subagent-driven-development` (if subagents available) or
 2. **Apply action**:
    - **Delete orphaned files**: `git rm <file>`
    - **Move from deprecated location**: `git mv docs/plans/<file> docs/superpowers/plans/<file>`
-   - **Clean completed state files**: `git rm docs/entropy-loop-state.json`
+   - **Clean completed state files**: `git rm docs/hub-loop-state.json`
 
 3. **Run full test suite** — file deletions can break imports, references, and test fixtures.
 
@@ -290,7 +290,7 @@ references from other files. When in doubt, skip.
 ### CI/CD Fixes (Impactia 5-stage pipeline)
 
 Target stages: (1) PR gate, (2) Build, (3) Deploy, (4) Post-deploy smoke,
-(5) Rollback. See entropy-scan Agent 13 for full shape.
+(5) Rollback. See hub-scan Agent 13 for full shape.
 
 1. **Validate workflow YAML** before editing:
    ```bash
@@ -331,7 +331,7 @@ Target stages: (1) PR gate, (2) Build, (3) Deploy, (4) Post-deploy smoke,
 3. **Verify on a feature branch** (never push workflow changes directly to
    `main`):
    ```bash
-   git checkout -b chore/entropy-fix-cicd-<slug>
+   git checkout -b chore/hub-fix-cicd-<slug>
    git commit -m "ci: <what was fixed>"
    git push -u origin HEAD
    # Let the PR trigger the updated CI. Watch the run:
@@ -340,7 +340,7 @@ Target stages: (1) PR gate, (2) Build, (3) Deploy, (4) Post-deploy smoke,
    - PR gate run must be green.
    - If the fix touches Stages 2-4, merge to `develop` (staging) first and
      confirm the staging deploy + smoke succeeded before promoting to `main`.
-   - Use the `entropy-check-deploy` skill to verify the deploy status if available.
+   - Use the `hub-check-deploy` skill to verify the deploy status if available.
 
 4. **Run full test suite locally** — YAML edits can be paired with code/config
    changes (e.g., new test script in `package.json`).
@@ -365,7 +365,7 @@ After running verification:
   ```
 - **More failures than baseline** → revert changes from this fix:
   ```bash
-  git stash --include-untracked -m "entropy-fix: reverted <description>"
+  git stash --include-untracked -m "hub-fix: reverted <description>"
   git stash drop
   ```
   Log what broke and why, then move to the next fix. Do NOT retry
@@ -389,7 +389,7 @@ Move to next correction — repeat the appropriate cycle.
 
 **Skip this phase if `--skip-rescan` was passed.**
 
-After all corrections are applied, re-run `/entropy-scan` (or `/entropy-scan <domains>`
+After all corrections are applied, re-run `/hub-scan` (or `/hub-scan <domains>`
 if partial fix) to verify improvements.
 
 Present a before/after comparison:
@@ -434,7 +434,7 @@ If grades didn't improve as expected, investigate why and report to the user.
 | "Design token replacement is just CSS" | CSS changes can break layout, responsive behavior, and visual regression tests. Verify. |
 | "The linter doesn't matter, only tests" | Lint errors signal real issues (unused vars, type mismatches). They're part of the baseline. |
 | "This domain has no tests, so nothing to gate" | Then write a render/smoke test first. No gate = no fix. |
-| "This fix needs aggressive strategy but I'm on simple" | Then skip it. Strategy escalation is entropy-loop's job, not yours. |
+| "This fix needs aggressive strategy but I'm on simple" | Then skip it. Strategy escalation is hub-loop's job, not yours. |
 | "Docs don't need tests, just update them" | Doc changes can break doc builds, test assertions, and generated content. Verify. |
 | "This file looks orphaned, I'll just delete it" | Verify zero references first. Deleting a referenced file breaks things silently. |
 | "Old plans are harmless, they're just history" | Orphaned plans pollute searches, confuse new contributors, and waste context. Clean up. |

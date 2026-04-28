@@ -1,29 +1,29 @@
 ---
-name: entropy-driven-autopilot
+name: hub-driven-autopilot
 description: >
-  Use when a feature task should run hands-off through the entropy pipeline,
+  Use when a feature task should run hands-off through the hub pipeline,
   especially from Linear, scheduler, or explicit autopilot requests where no
-  human can answer gates during the run. Triggers on: entropy-driven-autopilot,
-  autopilot, autopilot entropy, autopilot driven, ship autopilot.
+  human can answer gates during the run. Triggers on: hub-driven-autopilot,
+  autopilot, autopilot hub, autopilot driven, ship autopilot.
 user_invocable: true
 ---
 
-# Entropy-Driven Autopilot
+# Hub-Driven Autopilot
 
-<!-- SYNC: entropy-driven-autopilot depends on:
+<!-- SYNC: hub-driven-autopilot depends on:
      - superpowers:brainstorming (Step 1, with autopilot preamble)
-     - entropy-aware (Steps 2 and 4, unchanged)
+     - hub-aware (Steps 2 and 4, unchanged)
      - superpowers:writing-plans (Step 3, with autopilot preamble)
      - superpowers:subagent-driven-development (Step 5, always chosen)
-     - entropy-e2e-frontend (Step 5.5, conditional, target_env=local)
-     - entropy-scan (Step 6, partial on affected domains)
-     - entropy-fix (Step 7, max 1 cycle, --skip-rescan)
+     - hub-e2e-frontend (Step 5.5, conditional, target_env=local)
+     - hub-scan (Step 6, partial on affected domains)
+     - hub-fix (Step 7, max 1 cycle, --skip-rescan)
      - ship-with-review (Step 8, REFERENCED for body/prompt templates but NOT invoked;
        autopilot inlines the PR-creation and review-dispatch so it can append autopilot
        sections without plumbing params into ship-with-review)
      - Step 8.5 inline review-autofix loop: max 1 cycle, applies only low-risk
        (nit/minor) findings already in PR scope, no re-scan — same invariant as
-       entropy-fix. Re-dispatches the fresh-agent review exactly once when fixes
+       hub-fix. Re-dispatches the fresh-agent review exactly once when fixes
        are applied. No new escape hatch; budget review_fix_cycles_used caps it.
      - Step 8.7 full-mode auto-merge: opt-in via input.full_mode (default false).
        Evaluates 4 gates (approve verdict, quality pass, no unresolved findings,
@@ -32,27 +32,27 @@ user_invocable: true
        post-merge deploy state can be pushed. Three non-fatal hatches
        (14 ci_timeout, 15 merge_command_failed, 16 rebase_not_allowed). Never
        stuck — degrades to "PR stays open".
-     - Step 8.8 entropy ship verification: when full_mode merged into a
-       non-local target_env, invokes entropy-check-deploy and post-deploy entropy-e2e-frontend
-       through entropy-ship's entropy contract. Delivery is verified only when
+     - Step 8.8 hub ship verification: when full_mode merged into a
+       non-local target_env, invokes hub-check-deploy and post-deploy hub-e2e-frontend
+       through hub-ship's hub contract. Delivery is verified only when
        deploy + required post-deploy E2E pass.
      External deps used in bash snippets: gh, git, jq, openssl.
-     Expected callers: entropy-linear-autopilot (feature tickets), /schedule.
-     Cross-ref: entropy-driven (interactive sibling).
+     Expected callers: hub-linear-autopilot (feature tickets), /schedule.
+     Cross-ref: hub-driven (interactive sibling).
      Update if sub-skill names, escape hatches, state schema, or the PR/review
      inline logic change. -->
 
-**Announce at start:** "Running /entropy-driven-autopilot — fully autonomous quality-assured pipeline."
+**Announce at start:** "Running /hub-driven-autopilot — fully autonomous quality-assured pipeline."
 
 ## Overview
 
-End-to-end orchestrator that runs the same pipeline as `/entropy-driven` — brainstorming, entropy-aware enrichment, writing-plans, execution, entropy-e2e-frontend, entropy-scan, entropy-fix, ship-with-review — but **resolves every human-in-the-loop gate with deterministic rules plus logged AI judgment**.
+End-to-end orchestrator that runs the same pipeline as `/hub-driven` — brainstorming, hub-aware enrichment, writing-plans, execution, hub-e2e-frontend, hub-scan, hub-fix, ship-with-review — but **resolves every human-in-the-loop gate with deterministic rules plus logged AI judgment**.
 
 Intended outputs:
 - **Success:** a feature branch pushed to GitHub with an open PR whose body includes the spec, plan, quality grades, and autopilot decision log; a fresh-agent code review already dispatched.
 - **Stuck:** a branch named `autopilot/<date>-<slug>` with all artefacts committed and a state file archived to `docs/autopilot-runs/<run_id>.json`. No PR. The stuck reason and recovery hints are included in the final report.
 
-**Relation to `/entropy-driven`:** `/entropy-driven` is unchanged and remains the interactive variant. This skill is a separate entry point, usually invoked by `entropy-linear-autopilot`, a `/schedule`-dispatched agent, or a human who wants hands-off execution.
+**Relation to `/hub-driven`:** `/hub-driven` is unchanged and remains the interactive variant. This skill is a separate entry point, usually invoked by `hub-linear-autopilot`, a `/schedule`-dispatched agent, or a human who wants hands-off execution.
 
 **Transparency:** every decision the AI makes at a would-be human gate is written to three places — the spec (`## Autopilot Q&A`), the plan (`## Autopilot decisions`), and the state file. The fresh-agent reviewer in Step 8 is told explicitly that no human reviewed the spec/plan, and its verdict replaces that missing gate.
 
@@ -62,20 +62,20 @@ Intended outputs:
 
 Freeform:
 ```
-/entropy-driven-autopilot <task description>
-/entropy-driven-autopilot --from-ticket docs/tickets/YYYY-MM-DD-<slug>.md
+/hub-driven-autopilot <task description>
+/hub-driven-autopilot --from-ticket docs/tickets/YYYY-MM-DD-<slug>.md
 ```
 
 Structured (preferred when dispatched by another agent):
 ```
-/entropy-driven-autopilot { "goal": "...", "description": "...", "constraints": [...], "success_criteria": [...], "scope_boundaries": [...], "ticket_id": "IMP-123" }
+/hub-driven-autopilot { "goal": "...", "description": "...", "constraints": [...], "success_criteria": [...], "scope_boundaries": [...], "ticket_id": "IMP-123" }
 ```
 
 ### Input mode detection
 
 If the argument parses as JSON and has a `description` field, treat it as structured input. Otherwise, the entire argument is the freeform `description` and every other field defaults.
 
-**Freeform `--full` flag.** In freeform mode, the literal token `--full` anywhere in the argument — delimited by whitespace — sets `full_mode=true`. The parser strips that token before treating the remainder as `description`. Example: `/entropy-driven-autopilot --full add retry button` parses as `{description: "add retry button", full_mode: true}`. In structured JSON mode, pass `"full_mode": true` on the input object.
+**Freeform `--full` flag.** In freeform mode, the literal token `--full` anywhere in the argument — delimited by whitespace — sets `full_mode=true`. The parser strips that token before treating the remainder as `description`. Example: `/hub-driven-autopilot --full add retry button` parses as `{description: "add retry button", full_mode: true}`. In structured JSON mode, pass `"full_mode": true` on the input object.
 
 **Ticket file input.** If the argument includes `--from-ticket <path>`, read the
 YAML frontmatter from that ticket and construct the structured input from:
@@ -86,7 +86,7 @@ base_branch, max_wall_clock_min, target_env, full_mode, require_deploy
 ```
 
 If `ticket_id` is absent but frontmatter `id` is set, use `id` as `ticket_id`.
-Do not read arbitrary body prose except the `## Entropy autopilot input` JSON
+Do not read arbitrary body prose except the `## Hub autopilot input` JSON
 block when frontmatter is missing or incomplete. If both frontmatter and JSON
 block exist, frontmatter wins and the JSON fills only missing fields.
 
@@ -102,7 +102,7 @@ block exist, frontmatter wins and the JSON fills only missing fields.
 | `ticket_id` | `null` | Included in the PR body as `Closes <id>`. |
 | `base_branch` | `main` | Branch to fork from. |
 | `max_wall_clock_min` | `60` | Wall-clock escape hatch ceiling. |
-| `target_env` | `"local"` | Passed to entropy-e2e-frontend in Step 5.5. |
+| `target_env` | `"local"` | Passed to hub-e2e-frontend in Step 5.5. |
 | `full_mode` | `false` | When `true`, Step 8.7 evaluates merge gates and auto-merges the PR with `gh pr merge --rebase`. Default off. |
 | `require_deploy` | `true` when `target_env != "local"`, else `false` | When true, a merged full-mode run must verify deploy + post-deploy checks before delivery is considered verified. |
 
@@ -230,7 +230,7 @@ The state file is written **at every transition** and committed. It is both the 
     }
   ],
   "budgets": {
-    "entropy_fix_cycles_used":    0,
+    "hub_fix_cycles_used":    0,
     "test_retries_used":          0,
     "implementer_answers_given":  0,
     "review_fix_cycles_used":     0
@@ -325,13 +325,13 @@ Per-gate policy:
 
 **Output:** spec at `docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md`. Commit + state update.
 
-### Step 2: Entropy-aware on spec
+### Step 2: Hub-aware on spec
 
 ```
-/entropy-aware docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md
+/hub-aware docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md
 ```
 
-Already non-interactive. If the command fails (non-zero exit, stack trace, or the spec file is unchanged after the call), retry once with the error captured as context. If it fails a second time, abort with `stuck_reason=entropy_aware_failed` (hatch 13).
+Already non-interactive. If the command fails (non-zero exit, stack trace, or the spec file is unchanged after the call), retry once with the error captured as context. If it fails a second time, abort with `stuck_reason=hub_aware_failed` (hatch 13).
 
 ### Step 3: Writing-plans
 
@@ -344,13 +344,13 @@ Invoke `superpowers:writing-plans` with the autopilot preamble.
 
 **Output:** plan at `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`. Commit + state update.
 
-### Step 4: Entropy-aware on plan
+### Step 4: Hub-aware on plan
 
 ```
-/entropy-aware docs/superpowers/plans/YYYY-MM-DD-<slug>.md
+/hub-aware docs/superpowers/plans/YYYY-MM-DD-<slug>.md
 ```
 
-Same failure policy as Step 2: retry once on non-zero exit; second failure → `stuck_reason=entropy_aware_failed` (hatch 13).
+Same failure policy as Step 2: retry once on non-zero exit; second failure → `stuck_reason=hub_aware_failed` (hatch 13).
 
 ### Step 5: Execution
 
@@ -364,11 +364,11 @@ Always invoke `superpowers:subagent-driven-development`. Do not offer the inline
 
 The two-stage reviews inside `subagent-driven-development` (spec compliance + code quality) are preserved as-is; they help the autopilot output meet its own standards.
 
-### Step 5.5: entropy-e2e-frontend (conditional)
+### Step 5.5: hub-e2e-frontend (conditional)
 
 Run the shared Frontend-Change Detection block. If frontend files were touched:
-invoke `/entropy-e2e-frontend` with this structured payload and parse
-`ENTROPY-E2E-FRONTEND-RESULT`:
+invoke `/hub-e2e-frontend` with this structured payload and parse
+`HUB-E2E-FRONTEND-RESULT`:
 
 ```json
 {
@@ -383,7 +383,7 @@ invoke `/entropy-e2e-frontend` with this structured payload and parse
 
 If the local dev server is not reachable, **skip with a warning**: set `state.step_history[-1].status = "skipped"` and `state.step_history[-1].warning = "local server not reachable"` (use the same `warning` field name as non-fatal escape hatches — do not invent a `reason` field here). This is not a stuck condition; the fresh-agent reviewer in Step 8 sees the note.
 
-### Step 6: Entropy-scan (partial)
+### Step 6: Hub-scan (partial)
 
 Determine affected domains from:
 - spec architecture section
@@ -392,21 +392,21 @@ Determine affected domains from:
 
 Run:
 ```
-/entropy-scan <domain-1> <domain-2> ...
+/hub-scan <domain-1> <domain-2> ...
 ```
 
 Outputs `docs/QUALITY_SCORE.md` + `docs/quality-score.json`. Update `artefacts.quality_path` in state.
 
-### Step 7: Entropy-fix (conditional)
+### Step 7: Hub-fix (conditional)
 
 Max **1 cycle**.
 
 - All affected domains ≥ B → `state.quality_gate = "pass"`. Proceed.
 - Any < B → invoke:
   ```
-  /entropy-fix <domain-1> <domain-2> --skip-rescan
+  /hub-fix <domain-1> <domain-2> --skip-rescan
   ```
-  Increment `budgets.entropy_fix_cycles_used`. Re-read `docs/quality-score.json`.
+  Increment `budgets.hub_fix_cycles_used`. Re-read `docs/quality-score.json`.
   - All ≥ B after fix → `state.quality_gate = "pass"`.
   - Still < B → `state.quality_gate = "fail"`. **Do not abort** — proceed to Step 8.
 
@@ -429,7 +429,7 @@ BODY_FILE=$(mktemp)
 
 Derivation rules when autopilot fills each section:
 - **Manual Test Plan**: pull bullets from `input.success_criteria` (if provided) and from the spec's `## Autopilot Q&A` section. Each bullet must be an action + expected result a human can run locally. Do NOT paraphrase TDD tests here — those are for Automated Coverage. If the diff is purely internal (no user-visible behavior), omit the whole section per `ship-with-review`'s omit rule.
-- **Automated Coverage**: pull unit/integration counts and commands from the `subagent-driven-development` run, and visual-regression pass/fail from Step 5.5 `/entropy-e2e-frontend` if it was invoked. Entropy-scan grades from Step 6 already render in `## Quality Grades` above — do NOT duplicate them here. If a bullet has no data, write `"not run"` — never invent numbers.
+- **Automated Coverage**: pull unit/integration counts and commands from the `subagent-driven-development` run, and visual-regression pass/fail from Step 5.5 `/hub-e2e-frontend` if it was invoked. Hub-scan grades from Step 6 already render in `## Quality Grades` above — do NOT duplicate them here. If a bullet has no data, write `"not run"` — never invent numbers.
 
 8.3 — **Open the PR:**
 ```bash
@@ -536,7 +536,7 @@ Re-classify every finding against these rules; override the reviewer's `auto_fix
    `state.scope_boundaries_respected` with the new reviewer output. Commit the
    state update.
 
-6. **Do NOT re-run `entropy-scan`.** The autofix is narrow and bounded; same invariant as `entropy-fix --skip-rescan`.
+6. **Do NOT re-run `hub-scan`.** The autofix is narrow and bounded; same invariant as `hub-fix --skip-rescan`.
 
 7. Regardless of the second verdict, proceed to Step 8.6. If the second review still returns `request-changes`, the PR stays open with the updated verdict in the final report; the human merges after inspecting the remaining findings.
 
@@ -683,7 +683,7 @@ Reached when any gate failed, wall-clock was exhausted, or method check failed. 
 
 Proceed to Step 8.8.
 
-### Step 8.8: Entropy ship verification (conditional)
+### Step 8.8: Hub ship verification (conditional)
 
 Runs only when all of these are true:
 
@@ -698,7 +698,7 @@ If any condition is false, set:
 Commit and push that archived state update to `origin "$BRANCH"`, then proceed
 to the final report.
 
-When the conditions are true, invoke `/entropy-ship` in entropy autopilot mode:
+When the conditions are true, invoke `/hub-ship` in hub autopilot mode:
 
 ```json
 {
@@ -716,7 +716,7 @@ When the conditions are true, invoke `/entropy-ship` in entropy autopilot mode:
 }
 ```
 
-`entropy-ship` must parse and return `ENTROPY-SHIP-RESULT`. Copy the relevant
+`hub-ship` must parse and return `HUB-SHIP-RESULT`. Copy the relevant
 fields into the archived autopilot state:
 
 - `ship_result`
@@ -728,7 +728,7 @@ fields into the archived autopilot state:
 
 Mapping:
 
-| `ENTROPY-SHIP-RESULT.ship_status` | Autopilot `delivery_status` |
+| `HUB-SHIP-RESULT.ship_status` | Autopilot `delivery_status` |
 |---|---|
 | `verified` | `verified` |
 | `partial` | `merged_unverified` |
@@ -760,7 +760,7 @@ Hard rules. When any of these triggers, the skill commits whatever artefacts exi
 | 10 | `gh pr create` fails | non-zero exit | `pr_creation_failed` | yes |
 | 11 | Fresh-agent review dispatch fails | Agent tool error | `review_dispatch_failed` | **no** — PR already exists, record `review_verdict=not-dispatched` and continue |
 | 12 | Step stuck in a loop with no progress | `step_history` shows the same `step` entered >2 times AND no new `artefacts` AND no new `decisions` since the last entry | `loop_detected` | **no** — skip the stuck step; see Non-fatal procedure for the escalation rule |
-| 13 | `/entropy-aware` fails twice on the same artefact | non-zero exit twice in a row on the same path | `entropy_aware_failed` | yes |
+| 13 | `/hub-aware` fails twice on the same artefact | non-zero exit twice in a row on the same path | `hub_aware_failed` | yes |
 | 14 | Full mode: CI timeout waiting for green | `gh pr checks --watch` exceeds `ci_timeout` (derived from remaining wall-clock, capped at 900s) | `merge_status=skipped_ci_timeout` | **no** — ship without merge |
 | 15 | Full mode: `gh pr merge` returns non-zero | non-zero exit from the merge command | `merge_status=merge_command_failed` | **no** — PR stays open with approve verdict |
 | 16 | Full mode: repo does not allow rebase merge | `gh repo view --json rebaseMergeAllowed` returns `false` | `merge_status=skipped_rebase_not_allowed` | **no** — ship without merge |
@@ -785,7 +785,7 @@ Hatch 12 specifically (loop detected): skip the offending step and advance to th
 
 Hatches 14–16 specifically (full-mode failures): these never alter `stuck_reason`. They set `state.merge_status` to the appropriate skipped/failed value, push the branch (since the merge did not complete and the branch still exists remotely), and let the pipeline fall through to the final report with `status: shipped`. The PR stays open for the human to merge manually.
 
-**Review-autofix invariant (no new escape hatch).** Step 8.5 is capped by `budgets.review_fix_cycles_used` (max 1), mirroring `entropy-fix`. It never loops, never re-runs `entropy-scan`, and never escalates severity. If the second review after an autofix still returns `request-changes`, the PR is left open with the updated verdict and the human merges after inspecting — this is *not* a stuck condition. Anything the reviewer flagged as severity ≥ `moderate` is never auto-fixed.
+**Review-autofix invariant (no new escape hatch).** Step 8.5 is capped by `budgets.review_fix_cycles_used` (max 1), mirroring `hub-fix`. It never loops, never re-runs `hub-scan`, and never escalates severity. If the second review after an autofix still returns `request-changes`, the PR is left open with the updated verdict and the human merges after inspecting — this is *not* a stuck condition. Anything the reviewer flagged as severity ≥ `moderate` is never auto-fixed.
 
 ## Output
 
@@ -920,7 +920,7 @@ If you mark `request-changes` with one or more `auto_fixable: true` findings, au
 ### Final report (returned to the caller)
 
 ```
-entropy-driven-autopilot: done
+hub-driven-autopilot: done
   Run ID: <run_id>
   Branch: <branch>
   Duration: <Xm>
@@ -943,7 +943,7 @@ entropy-driven-autopilot: done
   Stuck reason:   <none | reason>
 
   Autopilot decisions: <len(state.decisions)> logged
-  Budgets used: entropy-fix=<X>/1, test-retries=<Y>/1, implementer-answers=<Z>/3, review-fix=<W>/1
+  Budgets used: hub-fix=<X>/1, test-retries=<Y>/1, implementer-answers=<Z>/3, review-fix=<W>/1
   Warnings: <count from non-fatal hatches>
 
   Non-fatal warnings (if any):
@@ -964,7 +964,7 @@ If `status == "stuck"`, add a final line:
 
 ### Machine-readable return (for calling agents)
 
-After the human-readable report, also emit this JSON block — this is the contract `entropy-linear-autopilot` (and other dispatchers) parse. The dispatched subagent must return this block verbatim as the last thing in its Agent-tool response.
+After the human-readable report, also emit this JSON block — this is the contract `hub-linear-autopilot` (and other dispatchers) parse. The dispatched subagent must return this block verbatim as the last thing in its Agent-tool response.
 
 ```json
 {
@@ -981,7 +981,7 @@ After the human-readable report, also emit this JSON block — this is the contr
   "state_file": "docs/autopilot-runs/<run_id>.json",
   "decisions_count": 0,
   "budgets": {
-    "entropy_fix_cycles_used": 0,
+    "hub_fix_cycles_used": 0,
     "test_retries_used": 0,
     "implementer_answers_given": 0,
     "review_fix_cycles_used": 0
@@ -1015,9 +1015,9 @@ Fields that do not apply (e.g., `pr_url` on a stuck run, `stuck_reason` on a shi
 
 ## Integration Notes
 
-### entropy-linear-autopilot
+### hub-linear-autopilot
 
-`entropy-linear-autopilot` dispatches `entropy-driven-autopilot` for **feature** tickets (bugs continue to `/entropy-bugfix`). The dispatcher passes a structured JSON derived from the ticket:
+`hub-linear-autopilot` dispatches `hub-driven-autopilot` for **feature** tickets (bugs continue to `/hub-bugfix`). The dispatcher passes a structured JSON derived from the ticket:
 
 ```json
 {
@@ -1032,17 +1032,17 @@ Fields that do not apply (e.g., `pr_url` on a stuck run, `stuck_reason` on a shi
 ```
 
 On return:
-- `status: shipped` and `delivery_status: verified` → `entropy-linear-autopilot` moves the ticket to `doneStatus`, with the PR URL recorded.
-- `status: shipped` but `delivery_status != verified` → `entropy-linear-autopilot` leaves the ticket in `inProgressStatus`, records the PR URL, and comments with deploy/delivery status.
-- `status: stuck` → `entropy-linear-autopilot` leaves the ticket in `inProgressStatus` and posts a comment containing `stuck_reason` and the archived state file path.
+- `status: shipped` and `delivery_status: verified` → `hub-linear-autopilot` moves the ticket to `doneStatus`, with the PR URL recorded.
+- `status: shipped` but `delivery_status != verified` → `hub-linear-autopilot` leaves the ticket in `inProgressStatus`, records the PR URL, and comments with deploy/delivery status.
+- `status: stuck` → `hub-linear-autopilot` leaves the ticket in `inProgressStatus` and posts a comment containing `stuck_reason` and the archived state file path.
 
 ### /schedule
 
-For unattended runs (e.g., a nightly entropy-linear-autopilot), `/schedule` fires the caller skill, which in turn invokes this skill. The state file and archived runs make it safe to run unattended: every failure leaves debug evidence on the autopilot branch without touching shared branches.
+For unattended runs (e.g., a nightly hub-linear-autopilot), `/schedule` fires the caller skill, which in turn invokes this skill. The state file and archived runs make it safe to run unattended: every failure leaves debug evidence on the autopilot branch without touching shared branches.
 
-### entropy-driven (interactive sibling)
+### hub-driven (interactive sibling)
 
-This skill **does not delegate** to `entropy-driven`. Both skills invoke the same sub-skills directly. The difference is the preamble passed to those sub-skills and the deterministic policy at each gate.
+This skill **does not delegate** to `hub-driven`. Both skills invoke the same sub-skills directly. The difference is the preamble passed to those sub-skills and the deterministic policy at each gate.
 
 ## Important Rules
 
@@ -1051,7 +1051,7 @@ This skill **does not delegate** to `entropy-driven`. Both skills invoke the sam
   `ticket_goal_satisfied`, `success_criteria_satisfied`, and
   `scope_boundaries_respected` are all true. Tests and deploy are necessary but
   not sufficient.
-- **Never delegate to `entropy-driven`.** Invoke sub-skills directly with the autopilot preamble. Delegating to an interactive orchestrator defeats the autopilot contract.
+- **Never delegate to `hub-driven`.** Invoke sub-skills directly with the autopilot preamble. Delegating to an interactive orchestrator defeats the autopilot contract.
 - **Never skip ship-with-review's fresh-agent review** unless hatch 11 fires. The review verdict replaces the missing human gate.
 - **Always open a PR on success**, regardless of `quality_gate`. The reviewer agent sees the grades and decides.
 - **Merge only under `full_mode: true`, only when all 4 gates pass (approve verdict + ticket contract, quality pass, no unresolved findings, CI green; CI absence is allowed only for local targets).** Without `full_mode`, the skill opens and reviews; merging is a human decision. Never merge from any path other than Step 8.7. Use `gh pr merge --rebase`; keep the autopilot branch as the evidence branch until delivery state has been pushed. Skip (do not fall back) if the repo blocks rebase.
@@ -1060,8 +1060,8 @@ This skill **does not delegate** to `entropy-driven`. Both skills invoke the sam
   Step 8.8 returns `delivery_status=verified`.
 - **Full mode never escalates severity.** Step 8.5 autofix rules are unchanged — 1 cycle max, only nit/minor, in-diff, no spec/plan/arch changes. Full mode does NOT relax them to force a merge.
 - **Never skip hooks, never force-push.** Inherited from `ship-with-review`.
-- **Max 1 entropy-fix cycle.** Do not loop — that is `/entropy-loop`'s job. If `quality_gate == "fail"` after one cycle, ship anyway and let the review flag concerns.
-- **Max 1 review-autofix cycle.** Apply only findings that pass the Step 8.5 low-risk rules (nit/minor, in-diff, no new deps, no spec/plan/arch changes, single commit). Re-dispatch the reviewer exactly once to confirm. Never run a second autofix cycle. Anything severity ≥ `moderate` is never auto-fixed — that is always a human decision. Do NOT re-run `entropy-scan` after autofix.
+- **Max 1 hub-fix cycle.** Do not loop — that is `/hub-loop`'s job. If `quality_gate == "fail"` after one cycle, ship anyway and let the review flag concerns.
+- **Max 1 review-autofix cycle.** Apply only findings that pass the Step 8.5 low-risk rules (nit/minor, in-diff, no new deps, no spec/plan/arch changes, single commit). Re-dispatch the reviewer exactly once to confirm. Never run a second autofix cycle. Anything severity ≥ `moderate` is never auto-fixed — that is always a human decision. Do NOT re-run `hub-scan` after autofix.
 - **Commit state after every transition.** A crash must not lose the decision log.
 - **Branch stays on stuck.** Push the branch even on failure so humans can inspect locally with `git checkout autopilot/...`.
 - **Do not store secrets in state.** `input.description` is assumed non-sensitive.

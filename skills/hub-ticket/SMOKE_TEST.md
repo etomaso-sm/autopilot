@@ -1,12 +1,12 @@
-# Smoke test — entropy-ticket
+# Smoke test — hub-ticket
 
 Run this in a scratch repo or sandbox worktree. Do NOT run in `ai-skills` itself.
 
 ## Setup
 
 ```bash
-mkdir -p /tmp/entropy-ticket-smoke/src
-cd /tmp/entropy-ticket-smoke
+mkdir -p /tmp/hub-ticket-smoke/src
+cd /tmp/hub-ticket-smoke
 git init
 git commit --allow-empty -m "init"
 git checkout -b main 2>/dev/null || git branch -m main
@@ -25,7 +25,7 @@ Symlink the local ai-skills repo:
 
 ```bash
 mkdir -p .claude/skills
-ln -s $HOME/.superset/projects/impactia-dev-cookbook/skills/entropy-ticket .claude/skills/
+ln -s $HOME/.superset/projects/impactia-dev-cookbook/skills/hub-ticket .claude/skills/
 ```
 
 ## Cases
@@ -35,7 +35,7 @@ ln -s $HOME/.superset/projects/impactia-dev-cookbook/skills/entropy-ticket .clau
 Invoke:
 
 ```text
-/entropy-ticket --tracker=local Set deterministic temperature for classification without changing generation
+/hub-ticket --tracker=local Set deterministic temperature for classification without changing generation
 ```
 
 Expected:
@@ -43,8 +43,8 @@ Expected:
 - One ticket is generated under `docs/tickets/`.
 - Frontmatter contains non-empty `goal`.
 - `success_criteria` has at least one objective criterion.
-- `docs/TICKETS.md` is created with an `ENTROPY-TICKETS` JSON block and a table.
-- Tracker row includes `autopilot_command: /entropy-driven-autopilot --from-ticket ...`.
+- `docs/TICKETS.md` is created with an `HUB-TICKETS` JSON block and a table.
+- Tracker row includes `autopilot_command: /hub-driven-autopilot --from-ticket ...`.
 - `git status` shows `docs/tickets/...` and `docs/TICKETS.md` staged, but no commit.
 
 ### 2. Broad request splits into spike or multiple tickets
@@ -52,7 +52,7 @@ Expected:
 Invoke:
 
 ```text
-/entropy-ticket --tracker=local Analyze structured outputs and versioned prompts from the current agent code and make the tickets needed
+/hub-ticket --tracker=local Analyze structured outputs and versioned prompts from the current agent code and make the tickets needed
 ```
 
 Expected:
@@ -71,7 +71,7 @@ Expected:
 - Skill creates Linear issue(s).
 - On success, ticket frontmatter sets `tracker.source: linear`, `tracker.linear_id`, `linear_url`, and `ticket_id` to the Linear ID.
 - `docs/TICKETS.md` is not required.
-- Linear issue body includes the exact `## Entropy autopilot input` JSON block.
+- Linear issue body includes the exact `## Hub autopilot input` JSON block.
 
 ### 4. Both trackers
 
@@ -108,12 +108,12 @@ Across all cases:
 - Every ticket has a non-empty `goal`.
 - Every ticket has at least one `success_criteria` item.
 - Every ticket has `code_discovery.searched`, `touched_areas`, `observations`, and `open_questions`.
-- Every ticket body includes valid `## Entropy autopilot input` JSON with `goal`.
-- `docs/TICKETS.md`, when present, has a valid JSON block between `ENTROPY-TICKETS:START` and `ENTROPY-TICKETS:END`.
+- Every ticket body includes valid `## Hub autopilot input` JSON with `goal`.
+- `docs/TICKETS.md`, when present, has a valid JSON block between `HUB-TICKETS:START` and `HUB-TICKETS:END`.
 - Files are staged but never committed.
 
 ## Teardown
 
 ```bash
-cd ~ && rm -rf /tmp/entropy-ticket-smoke
+cd ~ && rm -rf /tmp/hub-ticket-smoke
 ```

@@ -1,16 +1,16 @@
 ---
-name: entropy-e2e-frontend
+name: hub-e2e-frontend
 description: >
   Use when frontend code changed, Playwright or visual regression coverage is
   needed, or a deployed frontend must be verified after development, staging, or
-  production deploy. Triggers on: entropy-e2e-frontend, frontend tests, visual
+  production deploy. Triggers on: hub-e2e-frontend, frontend tests, visual
   test, visual regression, playwright test, screenshot test, e2e frontend.
 user_invocable: true
 ---
 
-# Entropy E2E Frontend — Frontend Gate
+# Hub E2E Frontend — Frontend Gate
 
-**Announce at start:** "Running /entropy-e2e-frontend — frontend E2E tests with visual regression."
+**Announce at start:** "Running /hub-e2e-frontend — frontend E2E tests with visual regression."
 
 ## Overview
 
@@ -19,10 +19,10 @@ screenshot comparison. If tests don't exist for changed frontend files, generate
 them in pre-merge mode. In post-deploy mode, verify the deployed environment and
 never update baselines automatically.
 
-Can be invoked standalone or by `/entropy-ship` (Phase 3.5).
-It is also the post-deploy frontend gate used by entropy autopilot.
+Can be invoked standalone or by `/hub-ship` (Phase 3.5).
+It is also the post-deploy frontend gate used by hub autopilot.
 
-## Entropy Contract
+## Hub Contract
 
 Structured handoff:
 
@@ -51,7 +51,7 @@ Structured handoff:
 Result contract:
 
 ```text
-ENTROPY-E2E-FRONTEND-RESULT:
+HUB-E2E-FRONTEND-RESULT:
 {
   "result": "pass | fail | skipped | unconfigured",
   "mode": "pre_merge_local | post_deploy",
@@ -61,7 +61,7 @@ ENTROPY-E2E-FRONTEND-RESULT:
   "tests": {"passed": 0, "failed": 0, "skipped": 0},
   "visual": {"new": 0, "updated": 0, "diffs": 0},
   "report_path": "playwright-report/index.html",
-  "artifact_path": "docs/entropy-e2e-frontend-runs/...",
+  "artifact_path": "docs/hub-e2e-frontend-runs/...",
   "warnings": []
 }
 ```
@@ -136,7 +136,7 @@ fi
 
 If `MISSING` is empty: skip to Phase 1.
 If `AUTOPILOT=true` and `MISSING` is not empty: stop with
-`ENTROPY-E2E-FRONTEND-RESULT.result = "unconfigured"` and include missing vars in
+`HUB-E2E-FRONTEND-RESULT.result = "unconfigured"` and include missing vars in
 `warnings`.
 
 ### 0c: Prompt user
@@ -229,7 +229,7 @@ git commit -m "chore(e2e): bootstrap visual regression credentials" || true
 
 ## Frontend-Change Detection (shared)
 
-Callers use this block to decide whether to invoke `/entropy-e2e-frontend`.
+Callers use this block to decide whether to invoke `/hub-e2e-frontend`.
 
 ```bash
 FRONTEND_GLOBS='\.(tsx|jsx|vue|svelte|astro)$|^(app|pages|src/components|src/pages|src/routes)/'
@@ -239,12 +239,12 @@ BASE=$(git merge-base HEAD "$BASE_BRANCH")
 CHANGED=$(git diff "$BASE"...HEAD --name-only | grep -E "$FRONTEND_GLOBS" || true)
 
 if [ -z "$CHANGED" ]; then
-  echo "entropy-e2e-frontend: no frontend changes, skipping"
+  echo "hub-e2e-frontend: no frontend changes, skipping"
   exit 0
 fi
 ```
 
-If `$CHANGED` is non-empty, invoke `/entropy-e2e-frontend` with a handoff payload.
+If `$CHANGED` is non-empty, invoke `/hub-e2e-frontend` with a handoff payload.
 Callers may override `FRONTEND_GLOBS` by reading `.visual-regression.json` if
 present.
 
@@ -367,7 +367,7 @@ Store flag for Phase 3 (component test generation strategy).
 
 ### 2a.0: Check for structured handoff
 
-When invoked by another skill (e.g., `entropy-driven`, `entropy-bugfix`), the
+When invoked by another skill (e.g., `hub-driven`, `hub-bugfix`), the
 caller may pass a handoff payload:
 
 ```json
@@ -403,7 +403,7 @@ artifact.
 ### 2a: Detect changed frontend files
 
 ```bash
-# Inherit BASE from /entropy-ship when invoked as sub-skill.
+# Inherit BASE from /hub-ship when invoked as sub-skill.
 # Compute when standalone.
 if [ -z "$BASE" ]; then
   BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
@@ -428,11 +428,11 @@ Apply these rules in order:
 | No match | Skip — note in report |
 
 **Monorepo check:** if changed files are under `packages/` or `apps/`:
-> "Monorepo detected. Run `/entropy-e2e-frontend` from the relevant package directory
-> (e.g., `cd packages/web && /entropy-e2e-frontend`). Each package needs its own
+> "Monorepo detected. Run `/hub-e2e-frontend` from the relevant package directory
+> (e.g., `cd packages/web && /hub-e2e-frontend`). Each package needs its own
 > `playwright.config.ts` and E2E tests."
-> STOP. If invoked as a sub-skill by `/entropy-ship`, return control —
-> `/entropy-ship` continues with backend E2E in Phase 4.
+> STOP. If invoked as a sub-skill by `/hub-ship`, return control —
+> `/hub-ship` continues with backend E2E in Phase 4.
 
 ### 2c: Check existing tests
 
@@ -568,7 +568,7 @@ BASE_URL="$EFFECTIVE_BASE_URL" npx playwright test --reporter=html 2>&1
   commit, and re-run. Max 3 iterations.
 - In `post_deploy`: do **not** edit code or tests from this skill. Report the
   failure as a deployed regression and return `result=fail`. The caller
-  (`entropy-ship` or `entropy-driven-autopilot`) decides whether to enter a
+  (`hub-ship` or `hub-driven-autopilot`) decides whether to enter a
   fix/redeploy loop.
 
 ### Visual failures (screenshot mismatch)
@@ -601,7 +601,7 @@ STOP and report:
 Write an artifact for every run:
 
 ```text
-docs/entropy-e2e-frontend-runs/YYYY-MM-DDTHH-MM-SSZ-<mode>-<target_env>.json
+docs/hub-e2e-frontend-runs/YYYY-MM-DDTHH-MM-SSZ-<mode>-<target_env>.json
 ```
 
 Include parsed input, effective base URL, changed files, mapped tests, command
@@ -609,7 +609,7 @@ run, Playwright summary, visual diff counts, report paths, warnings, and final
 `result`.
 
 ```
-/entropy-e2e-frontend result:
+/hub-e2e-frontend result:
 
 Mode:               pre_merge_local | post_deploy
 Target env:         local | development | staging | production | deploy
@@ -620,7 +620,7 @@ Visual baselines:   N new, M updated, P unchanged
 Skipped files:      [files with no mapping rule, if any]
 Report:             playwright-report/index.html
 Diff images:        test-results/ (only if visual failures)
-Artifact:           docs/entropy-e2e-frontend-runs/...
+Artifact:           docs/hub-e2e-frontend-runs/...
 Duration:           Xs
 
 Regressions:        [list if any, or "none"]
@@ -629,7 +629,7 @@ Regressions:        [list if any, or "none"]
 Then emit this machine-readable block exactly:
 
 ```text
-ENTROPY-E2E-FRONTEND-RESULT:
+HUB-E2E-FRONTEND-RESULT:
 {
   "result": "pass | fail | skipped | unconfigured",
   "mode": "pre_merge_local | post_deploy",
@@ -649,13 +649,13 @@ ENTROPY-E2E-FRONTEND-RESULT:
   },
   "report_path": "playwright-report/index.html",
   "diff_path": "test-results/",
-  "artifact_path": "docs/entropy-e2e-frontend-runs/...",
+  "artifact_path": "docs/hub-e2e-frontend-runs/...",
   "warnings": []
 }
 ```
 
 Fields that do not apply must be `null`, not omitted. Callers parse the
-`ENTROPY-E2E-FRONTEND-RESULT:` marker.
+`HUB-E2E-FRONTEND-RESULT:` marker.
 
 ---
 

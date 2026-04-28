@@ -1,27 +1,27 @@
 ---
-name: entropy-ticket
+name: hub-ticket
 description: >
   Use when a rough idea needs code-aware discovery, goal definition, and one or
-  more delivery-ready entropy tickets for local tracking, Linear, autopilot, or
-  draft-only planning. Triggers on: entropy-ticket, entropy-intake, armar ticket,
+  more delivery-ready hub tickets for local tracking, Linear, autopilot, or
+  draft-only planning. Triggers on: hub-ticket, hub-intake, armar ticket,
   new ticket, nuevo ticket, draft ticket, crear ticket, idea to ticket.
 user_invocable: true
 ---
 
-# Entropy Ticket — Code-Aware Intake Gate
+# Hub Ticket — Code-Aware Intake Gate
 
-<!-- SYNC: entropy-ticket depends on:
-     - entropy-driven-autopilot input schema:
+<!-- SYNC: hub-ticket depends on:
+     - hub-driven-autopilot input schema:
        goal, description, constraints, success_criteria, scope_boundaries,
        ticket_id, base_branch, max_wall_clock_min, target_env, full_mode,
        require_deploy
-     - entropy-linear-autopilot: reads Linear issue content and should preserve
-       the "Entropy autopilot input" JSON block when present.
+     - hub-linear-autopilot: reads Linear issue content and should preserve
+       the "Hub autopilot input" JSON block when present.
      - docs/TICKETS.md local tracker contract below.
      Update this skill when any input field, delivery status, or tracker field
      changes. -->
 
-**Announce at start:** "Running /entropy-ticket — code-aware entropy intake and ticket shaping."
+**Announce at start:** "Running /hub-ticket — code-aware hub intake and ticket shaping."
 
 ## Overview
 
@@ -44,18 +44,18 @@ Tracking can live in:
 - nowhere yet (`tracker.source=none`; draft only)
 
 This skill does not implement or ship tickets. It creates the goal contract that
-`/entropy-driven-autopilot --from-ticket ...` uses to judge success.
+`/hub-driven-autopilot --from-ticket ...` uses to judge success.
 
-The ticket file is canonical for the entropy contract (`goal`,
+The ticket file is canonical for the hub contract (`goal`,
 `success_criteria`, `scope_boundaries`, and autopilot JSON). Linear and
 `docs/TICKETS.md` are tracking surfaces for that contract.
 
-## Entropy Contract
+## Hub Contract
 
 Required final marker:
 
 ```text
-ENTROPY-TICKET-RESULT:
+HUB-TICKET-RESULT:
 {
   "ticket_status": "ready | tracked | pushed | mirrored | aborted",
   "tracker": {
@@ -70,7 +70,7 @@ ENTROPY-TICKET-RESULT:
       "linear_id": "IMP-123",
       "linear_url": "https://linear.app/...",
       "goal": "...",
-      "autopilot_command": "/entropy-driven-autopilot --from-ticket docs/tickets/..."
+      "autopilot_command": "/hub-driven-autopilot --from-ticket docs/tickets/..."
     }
   ],
   "warnings": []
@@ -82,10 +82,10 @@ Fields that do not apply must be `null`, not omitted.
 ## Invocation
 
 ```text
-/entropy-ticket <rough task description>
-/entropy-ticket --local <rough task description>
-/entropy-ticket --manual <rough task description>
-/entropy-ticket --tracker=local|linear|both|none <rough task description>
+/hub-ticket <rough task description>
+/hub-ticket --local <rough task description>
+/hub-ticket --manual <rough task description>
+/hub-ticket --tracker=local|linear|both|none <rough task description>
 ```
 
 Flags:
@@ -132,7 +132,7 @@ code_discovery:
     - "<fact learned from code, not speculation>"
   open_questions: []
 
-# entropy-driven-autopilot input
+# hub-driven-autopilot input
 ticket_id: ET-20260427-001
 base_branch: development
 max_wall_clock_min: 60
@@ -149,8 +149,8 @@ tests:
 
 delivery:
   expected_status: verified
-  deploy_gate: entropy-check-deploy
-  frontend_gate: entropy-e2e-frontend
+  deploy_gate: hub-check-deploy
+  frontend_gate: hub-e2e-frontend
 
 tracker:
   source: local               # local | linear | both | none
@@ -288,7 +288,7 @@ Before writing, validate each ticket:
 - if `target_env != local` and `full_mode=true`, then `require_deploy=true`
 - `code_discovery.observations` has at least one item, unless the repo has no
   relevant code yet; then add a warning.
-- if `kind=bug`, note that `entropy-linear-autopilot` routes it to `/entropy-bugfix`
+- if `kind=bug`, note that `hub-linear-autopilot` routes it to `/hub-bugfix`
 
 If validation fails, re-ask only the offending field.
 
@@ -300,12 +300,12 @@ Each body must include:
 2. `## Code discovery`
 3. `## Success criteria`
 4. `## Scope boundaries`
-5. `## Entropy autopilot input`
+5. `## Hub autopilot input`
 
 The autopilot input block must be valid JSON:
 
 ````markdown
-## Entropy autopilot input
+## Hub autopilot input
 ```json
 {
   "goal": "...",
@@ -359,7 +359,7 @@ Canonical format:
 ````markdown
 # Tickets
 
-<!-- ENTROPY-TICKETS:START -->
+<!-- HUB-TICKETS:START -->
 ```json
 {
   "version": 1,
@@ -379,7 +379,7 @@ Canonical format:
       "target_env": "development",
       "full_mode": true,
       "require_deploy": true,
-      "autopilot_command": "/entropy-driven-autopilot --from-ticket docs/tickets/2026-04-27-temperature-tuning.md",
+      "autopilot_command": "/hub-driven-autopilot --from-ticket docs/tickets/2026-04-27-temperature-tuning.md",
       "run_id": null,
       "pr_url": null,
       "delivery_status": null,
@@ -392,7 +392,7 @@ Canonical format:
   ]
 }
 ```
-<!-- ENTROPY-TICKETS:END -->
+<!-- HUB-TICKETS:END -->
 
 | ID | Status | Priority | Title | Tracker | PR | Delivery |
 |---|---|---|---|---|---|---|
@@ -416,7 +416,7 @@ ticket:
   - local path
   - goal
   - code discovery summary
-  - exact `## Entropy autopilot input` JSON block
+  - exact `## Hub autopilot input` JSON block
   - success criteria
   - scope boundaries
 - labels:
@@ -441,34 +441,34 @@ blocks local ticket creation.
 Print:
 
 ```text
-entropy-ticket: ready
+hub-ticket: ready
   Tracker: <local | linear | both | none>
   Tickets:
     - <id>: <goal>
       Path: <path>
       Linear: <id | none>
-      Autopilot: /entropy-driven-autopilot --from-ticket <path>
+      Autopilot: /hub-driven-autopilot --from-ticket <path>
 ```
 
-Then emit `ENTROPY-TICKET-RESULT:` exactly as defined above.
+Then emit `HUB-TICKET-RESULT:` exactly as defined above.
 
 ## Integration Notes
 
-### entropy-driven-autopilot
+### hub-driven-autopilot
 
 Preferred direct handoff:
 
 ```text
-/entropy-driven-autopilot --from-ticket docs/tickets/YYYY-MM-DD-<slug>.md
+/hub-driven-autopilot --from-ticket docs/tickets/YYYY-MM-DD-<slug>.md
 ```
 
 The resolver reads frontmatter and uses only the autopilot input fields. If the
 ticket has `tracker.linear_id`, pass that as `ticket_id`; otherwise pass `id`.
 
-### entropy-linear-autopilot
+### hub-linear-autopilot
 
-When Linear issue text contains `## Entropy autopilot input`,
-`entropy-linear-autopilot` should parse that JSON and use it as the structured
+When Linear issue text contains `## Hub autopilot input`,
+`hub-linear-autopilot` should parse that JSON and use it as the structured
 input. Config defaults fill only missing fields. This preserves goal, success
 criteria, scope boundaries, and deploy intent from the ticket.
 
@@ -500,9 +500,9 @@ you want to execute it.
   codebase has one obvious local pattern.
 - **Always inspect code.** A clear idea can still be miscut without repository
   evidence.
-- **Local ticket file is canonical for the entropy contract.** Linear and
+- **Local ticket file is canonical for the hub contract.** Linear and
   `docs/TICKETS.md` track or mirror that contract.
-- **JSON blocks must stay valid.** `entropy-linear-autopilot` and
-  `entropy-driven-autopilot` depend on them.
+- **JSON blocks must stay valid.** `hub-linear-autopilot` and
+  `hub-driven-autopilot` depend on them.
 - **Do not invoke implementation.** This skill ends at intake.
 - **Do not commit.** Stage changed files only; the user decides when to commit.
