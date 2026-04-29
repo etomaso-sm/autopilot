@@ -2,8 +2,8 @@
 name: hub-driven-autopilot
 description: >
   Use when a feature task should run hands-off through the hub pipeline,
-  especially from Linear, scheduler, or explicit autopilot requests where no
-  human can answer gates during the run. Triggers on: hub-driven-autopilot,
+  especially from a scheduler or explicit autopilot request where no human
+  can answer gates during the run. Triggers on: hub-driven-autopilot,
   autopilot, autopilot hub, autopilot driven, ship autopilot.
 user_invocable: true
 ---
@@ -37,12 +37,36 @@ user_invocable: true
        through hub-ship's hub contract. Delivery is verified only when
        deploy + required post-deploy E2E pass.
      External deps used in bash snippets: gh, git, jq, openssl.
-     Expected callers: hub-linear-autopilot (feature tickets), /schedule.
+     Expected callers: /schedule, direct human invocation.
      Cross-ref: hub-driven (interactive sibling).
      Update if sub-skill names, escape hatches, state schema, or the PR/review
-     inline logic change. -->
+     inline logic change.
+
+     Hardening additions (post-batch-A-B-C 2026-04-29):
+     - `## Strict compliance` section between Bootstrap and State Management
+       enumerates mandatory steps, forbidden self-justifications, allowed
+       warnings, and the subagent-context exception rule.
+     - Bootstrap step 5 RUN_ID now includes `$$` (PID) and an existence check
+       to prevent parallel-run id collisions.
+     - Step 8.4 has explicit "inline review is FORBIDDEN" language.
+     - Two new fatal escape hatches: 17 (`mandatory_step_skipped`) and 18
+       (`fabricated_run_id`). Both trip at archive time if state shape betrays
+       the contract violation. -->
 
 **Announce at start:** "Running /hub-driven-autopilot — fully autonomous quality-assured pipeline."
+
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+- Session prompts produced by this orchestrator must follow the queue → archive flow; do not fire from `~/Downloads` or scratch paths without staging through `_jockey/queue/` first.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
 
 ## Overview
 
@@ -52,7 +76,7 @@ Intended outputs:
 - **Success:** a feature branch pushed to GitHub with an open PR whose body includes the spec, plan, quality grades, and autopilot decision log; a fresh-agent code review already dispatched.
 - **Stuck:** a branch named `autopilot/<date>-<slug>` with all artefacts committed and a state file archived to `docs/autopilot-runs/<run_id>.json`. No PR. The stuck reason and recovery hints are included in the final report.
 
-**Relation to `/hub-driven`:** `/hub-driven` is unchanged and remains the interactive variant. This skill is a separate entry point, usually invoked by `hub-linear-autopilot`, a `/schedule`-dispatched agent, or a human who wants hands-off execution.
+**Relation to `/hub-driven`:** `/hub-driven` is unchanged and remains the interactive variant. This skill is a separate entry point, usually invoked by a `/schedule`-dispatched agent or a human who wants hands-off execution.
 
 **Transparency:** every decision the AI makes at a would-be human gate is written to three places — the spec (`## Autopilot Q&A`), the plan (`## Autopilot decisions`), and the state file. The fresh-agent reviewer in Step 8 is told explicitly that no human reviewed the spec/plan, and its verdict replaces that missing gate.
 
@@ -119,12 +143,6 @@ Before Step 1 of the pipeline. Every step below checks a condition; when the con
    ```
    Run each line. If `stuck` is set, execute the Abort Procedure with `stuck_reason=missing_deps`.
 
-   If `ticket_id` is set, also verify Linear MCP with a scoped ping (not a full `list_issues` across the whole workspace):
-   ```
-   mcp__claude_ai_Linear__get_issue(ticket_id)
-   ```
-   On 401 or other error, abort with `stuck_reason=missing_deps`.
-
 2. **Branch safety.**
    ```bash
    CURRENT=$(git rev-parse --abbrev-ref HEAD)
@@ -164,12 +182,26 @@ Before Step 1 of the pipeline. Every step below checks a condition; when the con
    git commit -m "chore(autopilot): mark ticket in progress"
    ```
    If the ticket file is not writable, continue and record a warning; the
-   Linear state remains the source for dispatch status.
+   ticket file remains the source for dispatch status.
 
 5. **Generate `run_id`:**
    ```bash
-   RUN_ID="$(date -u +%Y-%m-%dT%H-%M-%SZ)-$(openssl rand -hex 3)"
+   RUN_ID="$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$-$(openssl rand -hex 3)"
+   # `$$` is the autopilot process PID. Including it guarantees that two
+   # autopilots dispatched to the same repo at the same wall-clock second
+   # cannot collide on `run_id` even if the random suffix matches. This was
+   # added after a parallel batch produced 3 different runs with an identical
+   # `run_id` because subagents short-circuited the random call.
+   if [ -e "docs/autopilot-runs/${RUN_ID}.json" ]; then
+     # Path already exists — extend the random suffix and retry once.
+     RUN_ID="$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$-$(openssl rand -hex 6)"
+     [ -e "docs/autopilot-runs/${RUN_ID}.json" ] && stuck=run_id_collision
+   fi
    ```
+   You MUST run the command above and use its actual stdout. You MUST NOT
+   provide a `run_id` from memory or from any example in this document.
+   The `run_id` is the post-mortem key — a fabricated id silently overwrites
+   another run's archived state file.
 
 6. **Initialize the state file** (schema in `## State Management`) at `docs/autopilot-state.json` with `current_step: "bootstrap"`. Populate `input.full_mode` from the parsed flag/JSON (default `false`). Initialize `merge_status: null`, `merged: false`, `merge_sha: null`, and all four `merge_gates_evaluated.*` fields as `null`. Then commit:
    ```bash
@@ -180,6 +212,58 @@ Before Step 1 of the pipeline. Every step below checks a condition; when the con
    ```
 
 7. Proceed to Step 1 of the pipeline.
+
+## Strict compliance — what you cannot self-justify
+
+This skill is a rigid pipeline. Several behaviors that "feel reasonable" for a small fix are explicitly forbidden because they erode the autopilot contract: every gate this pipeline enforces is replacing a human gate that does not exist. Downgrading any of them voids the contract.
+
+### Mandatory steps — no self-skipping
+
+The following pipeline steps are MANDATORY. They MUST be invoked exactly as written. They MUST NOT be skipped, inlined, or "evaluated by the orchestrator" in lieu of the underlying sub-skill, regardless of how narrow, surgical, trivial, security-scoped, or self-evidently-aware the diff appears.
+
+| Step | Sub-skill | Skip allowed when |
+|---|---|---|
+| 2 | `/hub-aware` on spec | Never. On non-zero exit, retry once → fatal hatch 13 (`hub_aware_failed`) on second failure. |
+| 3 | `superpowers:writing-plans` | Never. Empty plan trips fatal hatch 5 (`empty_plan`). |
+| 4 | `/hub-aware` on plan | Never. Same retry-once → hatch 13 rule as Step 2. |
+| 6 | `/hub-scan` | Never. The grades are part of the autopilot output the human reviewer needs. |
+| 7 | `/hub-fix` | Allowed when `state.quality_gate == "pass"` after Step 6 (no domain below B). NOT allowed for any other reason. |
+| 8.4 | Agent-tool dispatch of fresh-agent review | Never silently. If the Agent tool genuinely fails, trip hatch 11 (`review_dispatch_failed`) and record `review_verdict=not-dispatched`. **Inline review is forbidden.** |
+
+### Forbidden self-justifications (these all trip hatch 17)
+
+If you find yourself reasoning along any of these lines, STOP. Either invoke the step as written or trip the corresponding escape hatch — there is no third path.
+
+- "This is a narrow / surgical / trivial / 2-line / security-only fix, so hub-aware would be a no-op."
+- "The spec already encodes hub conventions inline, so hub-aware-spec adds nothing."
+- "The plan is one task, so hub-aware-plan is unnecessary."
+- "The diff is config-only, so hub-scan does not apply to this domain."
+- "hub-scan would surface findings out of scope per the no-refactor constraint, so I'll skip it."
+- "I'll evaluate the 13 quality dimensions inline in the main agent."
+- "I'll do the review inline because the Agent tool is not available in this subagent context." (See next subsection — this is almost always wrong.)
+- "I'll provide a structured verdict that matches the rubric without dispatching a fresh agent."
+
+These are not warnings. These are fatal hatch 17 (`mandatory_step_skipped`). Self-skipping is never a degraded mode — it is a contract violation, and a run that self-skipped a mandatory step ships a PR with no audit trail proving the gate was satisfied.
+
+### Allowed warnings (these are fine and expected)
+
+These are the only `step_history[-1].warning` entries the pipeline supports for steps in the table above:
+
+- `hub-e2e-frontend: no frontend files changed in diff` — Step 5.5 is conditional on a file-change check; this is a legitimate skip, not in the mandatory table.
+- `hub-e2e-frontend: local server not reachable` — Step 5.5's only documented degraded mode (per the section).
+- `hub-fix: skipped — quality_gate already pass` — Step 7 is conditional on Step 6's result; this is a legitimate skip.
+
+Anything else logged as a "warning" against a mandatory step is a hatch 17 trip.
+
+### Subagent context is not an exception
+
+If you were dispatched as a subagent (your caller invoked you via the Agent tool with `subagent_type: general-purpose`), you have the **same toolset and the same obligations** as a top-level invocation. The Agent tool IS available to nested `general-purpose` subagents — the tool list for that type is `*`.
+
+Before claiming "Agent tool not available in this subagent context" and falling back to inline review, you MUST actually attempt to invoke the Agent tool. Only if the attempt itself fails (the tool returns an error, not "I assume it would fail") may you trip hatch 11. A run that records `review_verdict=approve` from an inline self-review is a contract violation; record `not-dispatched` instead so the human reviewer knows the gate was not satisfied.
+
+### Why this exists
+
+A prior autopilot batch shipped 9 PRs claiming `approve` from "inline self-review" because the dispatched subagents assumed (without testing) that the Agent tool was unavailable. A 10th PR honestly tripped hatch 11 and was clearly flagged for human review — that one was correct behavior; the other 9 misled the caller. This section is the corrective.
 
 ## State Management
 
@@ -282,7 +366,7 @@ This prevents subsequent runs from overwriting the record.
 
 **Resume is not an objective of v1.** A failed or killed run leaves the state file as evidence; the human inspects it and re-invokes from scratch.
 
-**No secrets in state.** `input.description` is assumed to be non-sensitive (it came from the user or a Linear ticket). Do not write credentials, tokens, or environment variables into the state file.
+**No secrets in state.** `input.description` is assumed to be non-sensitive (it came from the user or a ticket file). Do not write credentials, tokens, or environment variables into the state file.
 
 **`merge_status` values** (all `null` when `input.full_mode == false`):
 
@@ -482,6 +566,10 @@ If the Agent tool fails (hatch 11 `review_dispatch_failed`), record
 `ticket_goal_satisfied: null`, `success_criteria_satisfied: null`, and
 `scope_boundaries_respected: null`, then skip directly to Step 8.6 — the PR is
 already open.
+
+**"Failure" means an actual tool error**, not an assumption. If you are running as a subagent and you suspect the Agent tool may not be available, you MUST attempt the dispatch first. The subagent_type `general-purpose` has full tool access including the Agent tool, so the dispatch will normally succeed. Only when the attempted call returns an actual error may hatch 11 fire.
+
+**Inline review as a fallback is FORBIDDEN.** You MUST NOT, under any circumstances, generate a verdict yourself and write it to `state.review_verdict` as if a fresh-agent had produced it. Doing so produces a `approve` value that the caller cannot distinguish from a true fresh-agent approval, which silently defeats the autopilot's only safeguard against the missing human gate. If the Agent tool is unavailable, `review_verdict` MUST be `not-dispatched` — that is what tells the human reviewer to look closely. A run that records `approve` from an inline self-review trips fatal hatch 17 (`mandatory_step_skipped`) at archive time and the autopilot reports `status: stuck` rather than `shipped`.
 
 8.5 — **Triage findings and apply low-risk autofix (at most once).**
 
@@ -750,7 +838,7 @@ Hard rules. When any of these triggers, the skill commits whatever artefacts exi
 |---|---|---|---|---|
 | 1 | Protected branch at bootstrap | `current_branch ∈ {main, master, develop, production, staging}` | `protected_branch` | yes |
 | 2 | Unstashable dirty tree | `git stash push -u` fails | `dirty_tree` | yes |
-| 3 | Missing dependencies | `gh auth status` fails or Linear MCP 401 when `ticket_id` is set | `missing_deps` | yes |
+| 3 | Missing dependencies | `gh auth status` fails | `missing_deps` | yes |
 | 4 | Empty spec after brainstorming | `wc -c < spec_path < 500` or `grep -c '^## ' spec_path == 0` | `empty_spec` | yes |
 | 5 | Empty plan after writing-plans | `grep -c '^- \[ \]' plan_path == 0` | `empty_plan` | yes |
 | 6 | Spec self-review fails twice | second failure | `spec_review_failed` | yes |
@@ -764,6 +852,8 @@ Hard rules. When any of these triggers, the skill commits whatever artefacts exi
 | 14 | Full mode: CI timeout waiting for green | `gh pr checks --watch` exceeds `ci_timeout` (derived from remaining wall-clock, capped at 900s) | `merge_status=skipped_ci_timeout` | **no** — ship without merge |
 | 15 | Full mode: `gh pr merge` returns non-zero | non-zero exit from the merge command | `merge_status=merge_command_failed` | **no** — PR stays open with approve verdict |
 | 16 | Full mode: repo does not allow rebase merge | `gh repo view --json rebaseMergeAllowed` returns `false` | `merge_status=skipped_rebase_not_allowed` | **no** — ship without merge |
+| 17 | Mandatory step self-skipped | Any of Step 2/3/4/6/7 (when `quality_gate != "pass"`)/8.4 was logged as `skipped` or `inlined` against the strict-compliance rules in `## Strict compliance — what you cannot self-justify`, OR `state.review_verdict ∈ {"approve","request-changes","comment"}` was written without a successful Agent-tool dispatch in `step_history` | `mandatory_step_skipped` | yes |
+| 18 | Fabricated `run_id` | `state.run_id` does not match the format `<UTC timestamp>-<PID>-<hex>` produced by the bootstrap command | `fabricated_run_id` | yes |
 
 **Abort procedure (fatal):**
 
@@ -964,7 +1054,7 @@ If `status == "stuck"`, add a final line:
 
 ### Machine-readable return (for calling agents)
 
-After the human-readable report, also emit this JSON block — this is the contract `hub-linear-autopilot` (and other dispatchers) parse. The dispatched subagent must return this block verbatim as the last thing in its Agent-tool response.
+After the human-readable report, also emit this JSON block — this is the contract any dispatcher parses. The dispatched subagent must return this block verbatim as the last thing in its Agent-tool response.
 
 ```json
 {
@@ -1015,30 +1105,9 @@ Fields that do not apply (e.g., `pr_url` on a stuck run, `stuck_reason` on a shi
 
 ## Integration Notes
 
-### hub-linear-autopilot
-
-`hub-linear-autopilot` dispatches `hub-driven-autopilot` for **feature** tickets (bugs continue to `/hub-bugfix`). The dispatcher passes a structured JSON derived from the ticket:
-
-```json
-{
-  "goal": "<ticket goal>",
-  "description": "<ticket title>\n\n<ticket description>",
-  "ticket_id": "<IMP-123>",
-  "base_branch": "development",
-  "target_env": "development",
-  "full_mode": true,
-  "require_deploy": true
-}
-```
-
-On return:
-- `status: shipped` and `delivery_status: verified` → `hub-linear-autopilot` moves the ticket to `doneStatus`, with the PR URL recorded.
-- `status: shipped` but `delivery_status != verified` → `hub-linear-autopilot` leaves the ticket in `inProgressStatus`, records the PR URL, and comments with deploy/delivery status.
-- `status: stuck` → `hub-linear-autopilot` leaves the ticket in `inProgressStatus` and posts a comment containing `stuck_reason` and the archived state file path.
-
 ### /schedule
 
-For unattended runs (e.g., a nightly hub-linear-autopilot), `/schedule` fires the caller skill, which in turn invokes this skill. The state file and archived runs make it safe to run unattended: every failure leaves debug evidence on the autopilot branch without touching shared branches.
+For unattended runs, `/schedule` fires this skill (or a caller that invokes it). The state file and archived runs make it safe to run unattended: every failure leaves debug evidence on the autopilot branch without touching shared branches.
 
 ### hub-driven (interactive sibling)
 
@@ -1052,7 +1121,9 @@ This skill **does not delegate** to `hub-driven`. Both skills invoke the same su
   `scope_boundaries_respected` are all true. Tests and deploy are necessary but
   not sufficient.
 - **Never delegate to `hub-driven`.** Invoke sub-skills directly with the autopilot preamble. Delegating to an interactive orchestrator defeats the autopilot contract.
-- **Never skip ship-with-review's fresh-agent review** unless hatch 11 fires. The review verdict replaces the missing human gate.
+- **Never skip ship-with-review's fresh-agent review** unless hatch 11 fires after an actual Agent-tool dispatch failure. Inline self-review masquerading as a fresh-agent verdict trips fatal hatch 17 (`mandatory_step_skipped`). The review verdict replaces the missing human gate; faking it voids the contract.
+- **Mandatory pipeline steps cannot be self-skipped.** Steps 2, 3, 4, 6, 7 (when quality_gate is not pass), and 8.4 are mandatory. Justifications like "narrow fix", "surgical change", "spec already aware", "Agent tool unavailable in subagent context" are not allowed degraded modes — they are hatch 17. See `## Strict compliance — what you cannot self-justify` for the full list.
+- **`run_id` must come from the bootstrap command, not from memory.** The bootstrap RUN_ID line includes `$$` (PID) so parallel autopilots cannot collide. A `run_id` that does not match the `<timestamp>-<PID>-<hex>` shape trips fatal hatch 18 (`fabricated_run_id`).
 - **Always open a PR on success**, regardless of `quality_gate`. The reviewer agent sees the grades and decides.
 - **Merge only under `full_mode: true`, only when all 4 gates pass (approve verdict + ticket contract, quality pass, no unresolved findings, CI green; CI absence is allowed only for local targets).** Without `full_mode`, the skill opens and reviews; merging is a human decision. Never merge from any path other than Step 8.7. Use `gh pr merge --rebase`; keep the autopilot branch as the evidence branch until delivery state has been pushed. Skip (do not fall back) if the repo blocks rebase.
 - **Development delivery requires deploy evidence.** For non-local `target_env`,
