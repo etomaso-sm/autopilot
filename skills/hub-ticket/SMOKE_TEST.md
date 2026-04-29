@@ -63,37 +63,16 @@ Expected:
 - No ticket contains solution architecture as a hard contract.
 - Each ticket has `goal`, `success_criteria`, `scope_boundaries`, and `code_discovery`.
 
-### 3. Linear tracker
-
-Invoke case 1 with `--tracker=linear`.
-
-Expected:
-- Skill creates Linear issue(s).
-- On success, ticket frontmatter sets `tracker.source: linear`, `tracker.linear_id`, `linear_url`, and `ticket_id` to the Linear ID.
-- `docs/TICKETS.md` is not required.
-- Linear issue body includes the exact `## Hub autopilot input` JSON block.
-
-### 4. Both trackers
-
-Invoke case 1 with `--tracker=both`.
-
-Expected:
-- Skill creates Linear issue(s) and updates `docs/TICKETS.md`.
-- Local `id` remains stable as `ET-...`.
-- `ticket_id` in the autopilot JSON becomes the Linear ID so PRs can close Linear.
-- `docs/TICKETS.md` row includes both local id and Linear URL.
-
-### 5. Draft only
+### 3. Draft only
 
 Invoke case 1 with `--tracker=none`.
 
 Expected:
 - Ticket file is generated and staged.
-- No Linear issue is created.
 - `docs/TICKETS.md` is not created or updated.
 - `tracker.source: none`.
 
-### 6. Validation failure
+### 4. Validation failure
 
 Force an empty goal or empty success criteria during the interview.
 

@@ -23,7 +23,20 @@ user_invocable: true
 
 **Announce at start:** "Running /hub-driven — full quality-assured pipeline for this task."
 
-> **For fully autonomous execution (no human in the loop), use `/hub-driven-autopilot` instead.** That skill resolves every human gate with deterministic rules + logged AI judgment and is the canonical dispatch target for `hub-linear-autopilot` feature tickets.
+> **For fully autonomous execution (no human in the loop), use `/hub-driven-autopilot` instead.** That skill resolves every human gate with deterministic rules + logged AI judgment.
+
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+- Session prompts produced by this orchestrator must follow the queue → archive flow; do not fire from `~/Downloads` or scratch paths without staging through `_jockey/queue/` first.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
 
 ## Overview
 

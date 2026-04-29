@@ -12,13 +12,25 @@ user_invocable: true
 
 **Announce at start:** "Running /hub-check-deploy — hub deploy verification gate."
 
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
+
 ## Overview
 
 Verifies that a branch or environment was deployed by checking the latest CI/CD
 run and, when configured, the deployed HTTP health endpoint. This skill is now
 part of the hub family: it has a structured input contract, a non-interactive
 autopilot mode, an evidence artifact, and a machine-readable result block that
-`hub-ship`, `hub-driven-autopilot`, and `hub-linear-autopilot` can parse.
+`hub-ship` and `hub-driven-autopilot` can parse.
 
 It does not merge, redeploy, or fix failures. It only reports deploy evidence.
 Callers decide whether to retry, fix, or leave a ticket open.

@@ -2,7 +2,7 @@
 name: hub-ticket
 description: >
   Use when a rough idea needs code-aware discovery, goal definition, and one or
-  more delivery-ready hub tickets for local tracking, Linear, autopilot, or
+  more delivery-ready hub tickets for local tracking, autopilot, or
   draft-only planning. Triggers on: hub-ticket, hub-intake, armar ticket,
   new ticket, nuevo ticket, draft ticket, crear ticket, idea to ticket.
 user_invocable: true
@@ -15,13 +15,24 @@ user_invocable: true
        goal, description, constraints, success_criteria, scope_boundaries,
        ticket_id, base_branch, max_wall_clock_min, target_env, full_mode,
        require_deploy
-     - hub-linear-autopilot: reads Linear issue content and should preserve
-       the "Hub autopilot input" JSON block when present.
      - docs/TICKETS.md local tracker contract below.
      Update this skill when any input field, delivery status, or tracker field
      changes. -->
 
 **Announce at start:** "Running /hub-ticket — code-aware hub intake and ticket shaping."
+
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+- When a ticket produces a CC session prompt, place it in `_jockey/queue/` with the `C[N]-S[#]v[ver]-[name].md` naming — never inline-edit code or fire from `~/Downloads` without staging.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
 
 ## Overview
 
@@ -38,17 +49,14 @@ docs/tickets/YYYY-MM-DD-<slug>.md
 Tracking can live in:
 
 - `docs/TICKETS.md` (`tracker.source=local`)
-- Linear (`tracker.source=linear`)
-- both (`tracker.source=both`; Linear is the operational tracker,
-  `docs/TICKETS.md` mirrors status)
 - nowhere yet (`tracker.source=none`; draft only)
 
 This skill does not implement or ship tickets. It creates the goal contract that
 `/hub-driven-autopilot --from-ticket ...` uses to judge success.
 
 The ticket file is canonical for the hub contract (`goal`,
-`success_criteria`, `scope_boundaries`, and autopilot JSON). Linear and
-`docs/TICKETS.md` are tracking surfaces for that contract.
+`success_criteria`, `scope_boundaries`, and autopilot JSON). `docs/TICKETS.md`
+is a tracking surface for that contract.
 
 ## Hub Contract
 
@@ -57,18 +65,15 @@ Required final marker:
 ```text
 HUB-TICKET-RESULT:
 {
-  "ticket_status": "ready | tracked | pushed | mirrored | aborted",
+  "ticket_status": "ready | tracked | aborted",
   "tracker": {
-    "source": "local | linear | both | none",
-    "path": "docs/TICKETS.md",
-    "linear_project": "Impactia"
+    "source": "local | none",
+    "path": "docs/TICKETS.md"
   },
   "tickets": [
     {
       "local_id": "ET-20260427-001",
       "path": "docs/tickets/2026-04-27-temperature-tuning.md",
-      "linear_id": "IMP-123",
-      "linear_url": "https://linear.app/...",
       "goal": "...",
       "autopilot_command": "/hub-driven-autopilot --from-ticket docs/tickets/..."
     }
@@ -85,7 +90,7 @@ Fields that do not apply must be `null`, not omitted.
 /hub-ticket <rough task description>
 /hub-ticket --local <rough task description>
 /hub-ticket --manual <rough task description>
-/hub-ticket --tracker=local|linear|both|none <rough task description>
+/hub-ticket --tracker=local|none <rough task description>
 ```
 
 Flags:
@@ -95,7 +100,7 @@ Flags:
 | `--local` | Sets `target_env=local`, `full_mode=false`, `require_deploy=false`. |
 | `--manual` | Keeps deploy target but sets `full_mode=false`; a human runs/merges later. |
 | `--full` | Sets `full_mode=true`, `require_deploy=true`, `target_env=development` unless the blob says production/staging. |
-| `--tracker=<mode>` | Skips the tracker prompt. `local`, `linear`, `both`, or `none`. |
+| `--tracker=<mode>` | Skips the tracker prompt. `local` or `none`. |
 
 If no argument is given, ask: "¿Qué idea querés convertir en tickets?"
 
@@ -109,7 +114,6 @@ Each generated ticket file must use this frontmatter:
 id: ET-20260427-001
 created: 2026-04-27
 status: ready                 # draft | ready | in-progress | pr-open | verified | blocked | deferred
-linear_url: null
 priority: medium              # null | low | medium | high
 kind: feature                 # feature | bug | chore | spike
 
@@ -153,11 +157,9 @@ delivery:
   frontend_gate: hub-e2e-frontend
 
 tracker:
-  source: local               # local | linear | both | none
+  source: local               # local | none
   local_id: ET-20260427-001
   tracker_path: docs/TICKETS.md
-  linear_id: null
-  linear_url: null
 ---
 ```
 
@@ -288,7 +290,8 @@ Before writing, validate each ticket:
 - if `target_env != local` and `full_mode=true`, then `require_deploy=true`
 - `code_discovery.observations` has at least one item, unless the repo has no
   relevant code yet; then add a warning.
-- if `kind=bug`, note that `hub-linear-autopilot` routes it to `/hub-bugfix`
+- if `kind=bug`, note that bugs route to `/hub-bugfix` rather than
+  `/hub-driven-autopilot`.
 
 If validation fails, re-ask only the offending field.
 
@@ -339,20 +342,18 @@ Do not commit automatically.
 
 If `--tracker` was not provided, ask:
 
-> "Tracking? docs/TICKETS.md / Linear / both / draft"
+> "Tracking? docs/TICKETS.md / draft"
 
 Map answers:
 
 | Answer | `tracker.source` | Behavior |
 |---|---|---|
 | `docs/TICKETS.md`, `local` | `local` | Update local tracker only. |
-| `Linear` | `linear` | Push issues to Linear; no local queue row unless a ticket file points to Linear. |
-| `both` | `both` | Push to Linear and update local tracker as mirror. |
 | `draft` | `none` | No tracker update; ticket files only. |
 
 ### Step 10: Update docs/TICKETS.md
 
-When `tracker.source in {local, both}`, create or update `docs/TICKETS.md`.
+When `tracker.source=local`, create or update `docs/TICKETS.md`.
 
 Canonical format:
 
@@ -373,8 +374,6 @@ Canonical format:
       "kind": "feature",
       "title": "Temperature tuning for deterministic agent paths",
       "path": "docs/tickets/2026-04-27-temperature-tuning.md",
-      "linear_id": null,
-      "linear_url": null,
       "goal": "...",
       "target_env": "development",
       "full_mode": true,
@@ -406,47 +405,16 @@ Rules:
 - Stage `docs/TICKETS.md`.
 - Do not parse the markdown table as state.
 
-### Step 11: Linear Push
-
-When `tracker.source in {linear, both}`, call Linear `create_issue` for each
-ticket:
-
-- title: first non-empty line of `goal`, max 80 chars
-- description:
-  - local path
-  - goal
-  - code discovery summary
-  - exact `## Hub autopilot input` JSON block
-  - success criteria
-  - scope boundaries
-- labels:
-  - `bug` when `kind=bug`
-  - `autopilot` when `full_mode=true`
-
-On success:
-
-1. Set frontmatter `linear_url`, `tracker.linear_id`, and `tracker.linear_url`.
-2. If `tracker.source=linear`, set `id` and `ticket_id` to the Linear identifier.
-3. If `tracker.source=both`, keep local `id` stable and set `ticket_id` to the
-   Linear identifier so PRs can close the Linear issue.
-4. Update the JSON block's `ticket_id`.
-5. Update `docs/TICKETS.md` mirror row when `source=both`.
-6. Stage changed files.
-
-On failure, keep local files valid and report a warning. Linear push never
-blocks local ticket creation.
-
 ## Final Report
 
 Print:
 
 ```text
 hub-ticket: ready
-  Tracker: <local | linear | both | none>
+  Tracker: <local | none>
   Tickets:
     - <id>: <goal>
       Path: <path>
-      Linear: <id | none>
       Autopilot: /hub-driven-autopilot --from-ticket <path>
 ```
 
@@ -462,15 +430,8 @@ Preferred direct handoff:
 /hub-driven-autopilot --from-ticket docs/tickets/YYYY-MM-DD-<slug>.md
 ```
 
-The resolver reads frontmatter and uses only the autopilot input fields. If the
-ticket has `tracker.linear_id`, pass that as `ticket_id`; otherwise pass `id`.
-
-### hub-linear-autopilot
-
-When Linear issue text contains `## Hub autopilot input`,
-`hub-linear-autopilot` should parse that JSON and use it as the structured
-input. Config defaults fill only missing fields. This preserves goal, success
-criteria, scope boundaries, and deploy intent from the ticket.
+The resolver reads frontmatter and uses only the autopilot input fields. Pass
+`id` as `ticket_id`.
 
 ### Local tracking
 
@@ -486,9 +447,6 @@ you want to execute it.
 - User refuses save → no file written; `ticket_status=aborted`
 - Missing goal or success criteria after 3 attempts → abort; these define
   success for autopilot.
-- Linear MCP unavailable → keep local files, emit warning; if tracker was
-  `linear`, downgrade result to `ready` with `tracker.source=none` unless user
-  chooses local tracking.
 - File write failure → abort with stderr and no partial result claim.
 
 ## Important Rules
@@ -500,9 +458,8 @@ you want to execute it.
   codebase has one obvious local pattern.
 - **Always inspect code.** A clear idea can still be miscut without repository
   evidence.
-- **Local ticket file is canonical for the hub contract.** Linear and
-  `docs/TICKETS.md` track or mirror that contract.
-- **JSON blocks must stay valid.** `hub-linear-autopilot` and
-  `hub-driven-autopilot` depend on them.
+- **Local ticket file is canonical for the hub contract.** `docs/TICKETS.md`
+  tracks that contract.
+- **JSON blocks must stay valid.** `hub-driven-autopilot` depends on them.
 - **Do not invoke implementation.** This skill ends at intake.
 - **Do not commit.** Stage changed files only; the user decides when to commit.

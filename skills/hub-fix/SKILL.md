@@ -18,6 +18,18 @@ user_invocable: true
 
 **Announce at start:** "Running /hub-fix — applying corrections from quality scan."
 
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
+
 ## Overview
 
 Takes the output of `/hub-scan` (specifically `docs/QUALITY_SCORE.md` and

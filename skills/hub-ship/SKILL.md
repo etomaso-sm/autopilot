@@ -12,6 +12,19 @@ user_invocable: true
 
 **Announce at start:** "Running /hub-ship — hub ship and deploy verification gate."
 
+## Project Tracking & Governance
+
+Source of truth for how Hub work is tracked lives in `_jockey/`:
+
+- `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
+- `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
+- `_jockey/STATE.md` — current Control + active phase.
+- Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
+- New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
+- When a ship closes a Control milestone, update `_jockey/STATE.md` and emit a `jockey/deploy` stream entry per DEC-C29b-04.
+
+> **Coexists with skill-level tracking — neither invalidates the other.** This is program-level governance. The skill's own tracking artifacts (`docs/TICKETS.md`, `docs/QUALITY_SCORE.md`, `docs/hub-loop-state.json`, evidence files in `docs/`, etc.) remain the authoritative source for the skill's operational state. `_jockey/` is the program-level layer (Control, conventions, decisions). Both must coexist.
+
 ## Overview
 
 Complete post-implementation ship pipeline for the Impactia team. This is now
@@ -656,7 +669,7 @@ git push origin "$BASE_BRANCH"
 - ⛔ If any post-deploy E2E test fails: fix → re-deploy → re-run (max 3 attempts)
 - ⛔ After 3 failures: STOP and report to user
 - ⛔ In autopilot mode, do not ask. Return `ship_status=partial` with the
-  failing artifact path so `hub-linear-autopilot` can keep the ticket open.
+  failing artifact path so the dispatcher can keep the task open.
 
 ### Rationalization table
 
