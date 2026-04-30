@@ -22,6 +22,7 @@ Source of truth for how Hub work is tracked lives in `_jockey/`:
 - `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
 - `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
 - `_jockey/STATE.md` — current Control + active phase.
+- `_jockey/LOCKS.md` — file-lock manifest for shared / collision-prone files. **Read this before editing application code.** If a target file is claimed by another run, abort the edit and coordinate (post `[BLOCKED]` in #hub-dev). When you start editing a shared file, append a row claiming it; remove the row after the commit is pushed. `routes/agents.js` is in the **Shared (coordinate first)** lane and additionally requires a pre-edit ping in #hub-dev (Aaron's operating doc rule #4).
 - Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
 - New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
 
@@ -69,6 +70,48 @@ Invoke `tdd` once the issue is reproducible enough to encode.
 - Prefer a focused automated test.
 - If no test harness fits, write a one-off repro script.
 - Verify the repro fails for the expected reason before changing production code.
+
+## File-locking gate (LOCKS.md)
+
+This skill writes application code. Before any tool call that edits a repo-tracked file, enforce the file-lock convention defined in `_jockey/LOCKS.md`. The rules and lock format live in that file; this section is the per-skill enforcement contract.
+
+### Pre-edit gate (every code-modifying tool call)
+
+For each file you intend to edit:
+
+1. **Check.** Read `_jockey/LOCKS.md`. Inspect the "Active Locks" table for a row matching the target file path.
+2. **Blocked path** — file is claimed by a different run/skill:
+   - If the timestamp is ≤ 24h old: post `[BLOCKED]` in `#hub-dev` (channel `C0B18NVCR5E`) with the file, your run id, and the conflicting owner. Wait for release. Do not edit.
+   - If the timestamp is > 24h old: stale per LOCKS.md rule. Overwrite the row with your claim and add `replaces stale claim from <prev owner>` to the notes column.
+3. **`routes/agents.js` special case** — even when unclaimed, this file is the **"Shared (coordinate first)"** lane in LOCKS.md ownership lanes. Aaron's operating doc rule #4 requires a pre-edit ping. Post a `[STATUS]` one-liner in `#hub-dev` announcing the edit (file, run id, intent) before claiming. Wait for an ack or 5 min, whichever comes first.
+4. **Claim.** Append a row to the "Active Locks" table:
+
+   ```md
+   | <file path> | <skill> run <run_id-or-branch> | <ISO-8601 UTC> | <one-line purpose> |
+   ```
+
+   Commit it as its own commit before any application-code edit:
+
+   ```bash
+   git add _jockey/LOCKS.md
+   git commit -m "chore(locks): claim <file> for <skill> run <id>"
+   ```
+
+### Release (post-completion)
+
+After this run's final application-code commit on the claimed file is pushed AND the work using that file is complete (PR merged, run archived, or `done`):
+
+1. Remove your row from `_jockey/LOCKS.md`.
+2. Commit: `chore(locks): release <file> after <skill> run <id>`.
+3. Push.
+
+If this run aborts mid-flight (escape hatch fired, manual stop), the row remains as evidence; the next run's stale-lock check (step 2 above) will reclaim it after 24h. Do not pre-emptively release on abort — leaving the row makes the conflict visible.
+
+### What counts as a "shared file"
+
+LOCKS.md applies to any repo-tracked file that more than one engineer or autopilot run might touch. In practice that's the entire `routes/`, `lib/`, `migrations/`, `src/components/`, `src/pages/`, `worker-api.js`, every `wrangler*.toml`, `_jockey/*` (excluding `LOCKS.md` itself), and `package.json` / `package-lock.json`. Skill-private artifacts (`docs/autopilot-runs/<run_id>.json`, `docs/QUALITY_SCORE.md`, scratch files under `/tmp/`) do **not** need a claim.
+
+`routes/agents.js` is the canonical collision-prone file and always requires the pre-edit ping per step 3 above.
 
 ## Phase 3: Minimal Fix
 

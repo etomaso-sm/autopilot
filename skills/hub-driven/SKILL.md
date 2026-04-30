@@ -32,6 +32,7 @@ Source of truth for how Hub work is tracked lives in `_jockey/`:
 - `_jockey/CONVENTIONS.md` — code, session, deploy, D1, verification rules. New conventions append under `## C## additions` sections.
 - `_jockey/DECISIONS.md` — `DEC-C##-NN` decision log; cite when conventions reference a DEC.
 - `_jockey/STATE.md` — current Control + active phase.
+- `_jockey/LOCKS.md` — file-lock manifest for shared / collision-prone files. **Read this before editing application code.** If a target file is claimed by another run, abort the edit and coordinate (post `[BLOCKED]` in #hub-dev). When you start editing a shared file, append a row claiming it; remove the row after the commit is pushed. `routes/agents.js` is in the **Shared (coordinate first)** lane and additionally requires a pre-edit ping in #hub-dev (Aaron's operating doc rule #4).
 - Session prompts live in `_jockey/queue/` until fired, then move to `_jockey/archive/fired/`. Naming: `C[N]-S[#]v[ver]-[name].md`.
 - New behavioral conventions or decisions that emerge from this skill's run must land in `_jockey/DECISIONS.md` (DEC entry) and a `## C## additions` block in `_jockey/CONVENTIONS.md`.
 - Session prompts produced by this orchestrator must follow the queue → archive flow; do not fire from `~/Downloads` or scratch paths without staging through `_jockey/queue/` first.
@@ -50,6 +51,15 @@ brainstorming → hub-aware → writing-plans → hub-aware → execution → hu
 Each skill runs its full process. `hub-aware` enriches artefacts between
 phases. `hub-scan` validates the final result. `hub-fix` corrects
 findings if needed (max 1 cycle).
+
+## File-locking gate (LOCKS.md)
+
+This skill orchestrates sub-skills (`hub-fix`, `subagent-driven-development`, etc.) that write code. The file-lock convention is enforced by those sub-skills directly — see their `## File-locking gate (LOCKS.md)` sections. As the orchestrator, your responsibilities are:
+
+1. **Verify the sub-skill enforces the gate.** Every Hub sub-skill that writes application code (`hub-fix`, `hub-bugfix`, `hub-driven-autopilot`'s execution step) carries the per-skill gate from this convention. If you dispatch a non-Hub sub-skill (e.g. `superpowers:subagent-driven-development`) to edit Hub repo files, prepend a one-line reminder to the dispatched prompt:
+   > Before any Edit/Write on repo-tracked files, check `_jockey/LOCKS.md`. If your target is claimed by another run, abort and post `[BLOCKED]` in #hub-dev. Otherwise claim the row before editing and release it after push. `routes/agents.js` requires a pre-edit ping in #hub-dev regardless.
+2. **Surface lock conflicts.** If a sub-skill aborts with a lock conflict, do not retry blindly — propagate the failure with the conflicting owner / file in the final report so the human can coordinate.
+3. **Do not claim locks at the orchestrator level.** Locks live with whoever actually edits the file, so the sub-skill claims and releases. Orchestrator-level claims would risk dangling locks if the sub-skill releases and the orchestrator doesn't, or vice versa.
 
 ## Pipeline
 
